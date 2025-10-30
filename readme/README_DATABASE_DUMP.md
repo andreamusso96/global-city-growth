@@ -6,14 +6,14 @@ This paper studies city growth with a harmonized definition of city across space
 - **United States:** 1850–2020  
 
 ## Contents
-- `db_dump.sql` — full schema **and** data
+- `db-dump-2025_10_30.sql.zip` — full schema **and** data zipped
 
 ## Quick start
 
 **PostgreSQL**
 ```bash
 createdb city_growth
-psql -d city_growth -f city_growth_dump.sql
+psql -d city_growth -f name_of_the_database_file.sql
 ```
 
 ## Documentation & Paper
