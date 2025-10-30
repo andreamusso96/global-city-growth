@@ -1,6 +1,6 @@
 raw_data_zenodo:
   source: zenodo
-  url: https://zenodo.org/api/records/17308124/files/raw_data.zip/content
+  url: https://zenodo.org/api/records/17343655/files/raw_data.zip/content
   description: All raw data used in the Global City Growth project that are redistributable.
   files:
     raw_data.zip
