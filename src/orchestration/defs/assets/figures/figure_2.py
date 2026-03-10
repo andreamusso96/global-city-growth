@@ -9,7 +9,7 @@ from typing import Tuple
 from matplotlib import gridspec
 
 from ...resources.resources import PostgresResource, TableNamesResource
-from .figure_style import style_axes, annotate_letter_label, plot_spline_with_ci, style_inset_axes, apply_figure_theme, style_config
+from .figure_style import style_axes, annotate_letter_label, plot_spline_with_ci, style_inset_axes, apply_figure_theme, style_config, format_population_ticks
 from ..stats_utils import fit_penalized_b_spline, size_growth_slope_by_year_with_cis
 from .figure_io import read_pandas, save_figure, materialize_image
 from ..constants import constants
@@ -23,7 +23,7 @@ def _plot_size_growth_curve_by_urbanization_group(fig: plt.Figure, ax: plt.Axes,
     y_axis = 'normalized_log_growth'
     title = ' Global cross-section'
     
-    x_axis_label = r'$\mathbf{Size} \ (\log_{10}S_t)$'
+    x_axis_label = r'$\mathbf{Size}$ (log-scale)'
     y_axis_label = r'$\mathbf{Growth \ rate} \ (\log_{10}S_{t+10} \ / \ S_t)$'
     label_font_size = style_config['label_font_size']
 
@@ -37,6 +37,7 @@ def _plot_size_growth_curve_by_urbanization_group(fig: plt.Figure, ax: plt.Axes,
         color = colors[i]
         plot_spline_with_ci(ax=ax, x=x, y=average_log_growth_g + y, ci_low=average_log_growth_g + ci_low, ci_high=average_log_growth_g + ci_high, color=color, label=None)
 
+    format_population_ticks(ax=ax, is_xaxis=True)
     style_axes(ax=ax, xlabel=x_axis_label, ylabel=y_axis_label, title=title)
     ax.set_ylim(0.01, 0.17)
 
@@ -120,11 +121,12 @@ def _plot_size_growth_curve_kor_by_epoch(fig: plt.Figure, ax: plt.Axes, df_size_
     y_axis = 'normalized_log_growth'
 
     title = 'South Korea'
-    x_axis_label = r'$\mathbf{Size} \ (\log_{10}S_t)$'
+    x_axis_label = r'$\mathbf{Size}$ (log-scale)'
     y_axis_label = r'$\mathbf{Growth \ rate} \ (\log_{10}S_{t+10} \ / \ S_t)$'
 
     _plot_size_growth_curve_by_epoch(fig=fig, ax=ax, df_size_vs_growth_normalized=df_size_vs_growth_normalized, df_average_growth=df_average_growth, x_axis=x_axis, y_axis=y_axis, lam=lam)
     style_axes(ax=ax, xlabel=x_axis_label, ylabel=y_axis_label, title=title, legend_loc='lower right')
+    format_population_ticks(ax=ax, is_xaxis=True)
 
     # Inset plot
     x_axis_inset = 'year'
@@ -157,11 +159,13 @@ def _plot_size_growth_curve_usa_by_epoch(fig: plt.Figure, ax: plt.Axes, df_size_
     y_axis = 'normalized_log_growth'
 
     title = 'USA'
-    x_axis_label = r'$\mathbf{Size} \ (\log_{10}S_t)$'
+    x_axis_label = r'$\mathbf{Size}$ (log-scale)'
     y_axis_label = r'$\mathbf{Growth \ rate} \ (\log_{10}S_{t+10} \ / \ S_t)$'
 
     _plot_size_growth_curve_by_epoch(fig=fig, ax=ax, df_size_vs_growth_normalized=df_size_vs_growth_normalized, df_average_growth=df_average_growth, x_axis=x_axis, y_axis=y_axis, lam=lam)
     style_axes(ax=ax, xlabel=x_axis_label, ylabel=y_axis_label, title=title, legend_loc='lower center')
+    format_population_ticks(ax=ax, is_xaxis=True)
+
 
     # Inset plot
     x_axis_inset = 'year'
