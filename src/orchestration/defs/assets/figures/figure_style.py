@@ -97,3 +97,14 @@ def get_light_variant_of_hex(base_hex: str) -> tuple[list[str], list[str]]:
     light_rgb = colorsys.hls_to_rgb(h, light_l, s)
     light_hex = mcolors.to_hex(light_rgb)
     return light_hex
+
+
+def format_population_ticks(ax: plt.Axes, is_xaxis: bool = True) -> None:
+    ticks = [4, 5, 6, 7]
+    tick_labels = ['10K', '100K', '1M', '10M']
+    if is_xaxis:
+        ax.set_xticks(ticks)
+        ax.set_xticklabels(tick_labels)
+    else:
+        ax.set_yticks(ticks)
+        ax.set_yticklabels(tick_labels)

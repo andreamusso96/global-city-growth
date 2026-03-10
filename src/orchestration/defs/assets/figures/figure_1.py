@@ -16,7 +16,7 @@ import matplotlib.gridspec as gridspec
 from sqlalchemy import true
 
 from ...resources.resources import PostgresResource, TableNamesResource
-from .figure_style import create_bicolor_cmap, style_inset_axes, style_axes, annotate_letter_label, region_colors, style_config, apply_figure_theme, plot_spline_with_ci
+from .figure_style import create_bicolor_cmap, style_inset_axes, style_axes, annotate_letter_label, region_colors, style_config, apply_figure_theme, plot_spline_with_ci, format_population_ticks
 from ..stats_utils import fit_penalized_b_spline
 from .figure_io import read_pandas, read_postgis, save_figure, materialize_image
 from ..constants import constants
@@ -154,7 +154,7 @@ def _plot_growth_size_curve_by_region(fig: plt.Figure, ax: plt.Axes, df_size_vs_
     x_axis = 'log_population'
     y_axis = 'normalized_log_growth'
 
-    x_axis_label = r'$\mathbf{Size} \ (\log_{10}S_t)$'
+    x_axis_label = r'$\mathbf{Size}$ (log-scale)'
     y_axis_label = r'$\mathbf{Growth \ rate} \ (\log_{10}S_{t+10} \ / \ S_t)$'
     
     lam = constants['PENALTY_SIZE_GROWTH_CURVE']
@@ -172,6 +172,7 @@ def _plot_growth_size_curve_by_region(fig: plt.Figure, ax: plt.Axes, df_size_vs_
         color = region_colors[r]
         plot_spline_with_ci(ax=ax, x=x, y=average_log_growth_r + y, ci_low=average_log_growth_r + ci_low, ci_high=average_log_growth_r + ci_high, color=color, label=r)
 
+    format_population_ticks(ax=ax, is_xaxis=True)
     style_axes(ax=ax, xlabel=x_axis_label, ylabel=y_axis_label)
     return fig, ax
 
