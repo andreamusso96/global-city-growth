@@ -12,7 +12,7 @@ from matplotlib.patches import Patch
 from matplotlib import gridspec
 
 from ...resources.resources import PostgresResource, TableNamesResource
-from .figure_style import style_axes, annotate_letter_label, style_config, apply_figure_theme, style_inset_axes, get_light_variant_of_hex
+from .figure_style import style_axes, annotate_letter_label, style_config, apply_figure_theme, style_inset_axes, get_light_variant_of_hex, format_population_ticks
 from .figure_io import read_pandas, save_figure, materialize_image
 from ..stats_utils import fit_penalized_b_spline
 from ..constants import constants
@@ -39,23 +39,29 @@ def _plot_rank_vs_size_usa_kor(fig: plt.Figure, ax: plt.Axes, df_usa: pd.DataFra
     y_axis = 'log_population'
 
     title = 'USA'
-    x_axis_label = r'$\mathbf{Rank} \ (\log_{10}R_t)$'
-    y_axis_label = r'$\mathbf{Size} \ (\log_{10}S_t)$'
+    x_axis_label = r'$\mathbf{Rank}$ (log-scale)'
+    y_axis_label = r'$\mathbf{Size}$ (log-scale)'
     y1, y2 = 1850, 2020
 
     _plot_rank_vs_size_curves(fig=fig, ax=ax, y1=y1, y2=y2, df=df_usa, x_axis=x_axis, y_axis=y_axis, linewidth=2, markersize=30)
     style_axes(ax=ax, xlabel=x_axis_label, ylabel=y_axis_label, title=title, legend_loc="lower left")
+    format_population_ticks(ax=ax, is_xaxis=False)
+    ax.set_xticks([0, 1, 2, 3])
+    ax.set_xticklabels(['1', '10', '100', '1K'])
     ax.set_ylim(3.6, 7.9)
 
     # Inset plot (Korea)
     inset_title = 'South Korea'
-    x_axis_inset_label = r'Rank $(\log_{10}R_t)$'
-    y_axis_inset_label = r'Size $(\log_{10}S_t)$'
+    x_axis_inset_label = r'Rank (log-scale)'
+    y_axis_inset_label = r'Size (log-scale)'
     y1, y2 = 1975, 2025
 
     ax_inset = fig.add_axes([0.35, 0.76, 0.1, 0.1])
     _plot_rank_vs_size_curves(fig=fig, ax=ax_inset, y1=y1, y2=y2, df=df_kor, x_axis=x_axis, y_axis=y_axis, linewidth=1.5, markersize=0)
     style_inset_axes(ax=ax_inset, xlabel=x_axis_inset_label, ylabel=y_axis_inset_label, title=inset_title)
+    format_population_ticks(ax=ax_inset, is_xaxis=False)
+    ax_inset.set_xticks([0, 1, 2])
+    ax_inset.set_xticklabels(['1', '10', '100'])
     return fig, ax
 
 
