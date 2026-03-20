@@ -20,6 +20,7 @@ from .defs.assets.figures.si.si_projections import si_figure_projection_vs_histo
 from .defs.assets.figures.si.si_linear_rigidity import si_figure_linear_rigidity
 from .defs.assets.figures.si.si_robustness import si_figure_usa_robustness, si_tables_world_robustness
 from .defs.assets.figures.si.si_linear_vs_spline import si_figure_linear_vs_spline
+from .defs.assets.figures.si.si_country_borders import si_figure_country_borders
 
 all_job = define_asset_job("0_all_job", selection=AssetSelection.all(), description="Run the full pipeline.")
 
@@ -125,6 +126,7 @@ defs = Definitions(
         si_figure_linear_vs_spline,
         si_figure_projection_vs_historical_urb_pop_share_cities_above_1m,
         si_figure_linear_rigidity,
+        si_figure_country_borders,
         si_figure_usa_robustness,
         si_tables_world_robustness
     ],

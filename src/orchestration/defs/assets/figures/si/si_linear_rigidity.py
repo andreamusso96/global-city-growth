@@ -14,7 +14,7 @@ from matplotlib import gridspec
 from sqlalchemy.engine import Engine
 
 from ....resources.resources import PostgresResource, TableNamesResource
-from ..figure_style import style_axes, style_config, annotate_letter_label, style_inset_axes
+from ..figure_style import style_axes, style_config, annotate_letter_label, style_inset_axes, format_population_ticks
 from ..figure_io import read_pandas, save_figure, materialize_image
 from ...stats_utils import fit_penalized_b_spline
 from ...constants import constants
@@ -25,7 +25,7 @@ def _plot_non_linearity_figure_size_growth(fig: plt.Figure, ax: plt.Axes, colors
     x_axis = 'log_population'
     y_axis = 'log_growth'
 
-    x_axis_label = r'$\mathbf{Size} \ (\log_{10}S_t)$'
+    x_axis_label = r'$\mathbf{Size}$ (log-scale)'
     y_axis_label = r'$\mathbf{Growth \ rate} \ (\log_{10}S_{t+10} \ / \ S_t)$'
 
     x_axis_inset = 'D_bootstrap'
@@ -50,6 +50,7 @@ def _plot_non_linearity_figure_size_growth(fig: plt.Figure, ax: plt.Axes, colors
     ax_inset.set_yticks([])
 
     style_axes(ax=ax, title=title, xlabel=x_axis_label, ylabel=y_axis_label)
+    format_population_ticks(ax=ax, is_xaxis=True)
     if yaxlim is not None:
         ax.set_ylim(yaxlim)
     return fig, ax
@@ -58,8 +59,8 @@ def _plot_non_linearity_figure_rank_size(fig: plt.Figure, ax: plt.Axes, colors: 
     x_axis = 'log_rank'
     y_axis = 'log_population'
 
-    x_axis_label = r'$\mathbf{Rank} \ (\log_{10}R_t)$'
-    y_axis_label = r'$\mathbf{Size} \ (\log_{10}S_t)$'
+    x_axis_label = r'$\mathbf{Rank}$ (log-scale)'
+    y_axis_label = r'$\mathbf{Size}$ (log-scale)'
 
     lam = constants['PENALTY_RANK_SIZE_CURVE']
 
@@ -72,6 +73,13 @@ def _plot_non_linearity_figure_rank_size(fig: plt.Figure, ax: plt.Axes, colors: 
     ax.plot(x, y_spline, color=colors[1], linewidth=2, label='Spline')
 
     style_axes(ax=ax, title=title, xlabel=x_axis_label, ylabel=y_axis_label)
+    format_population_ticks(ax=ax, is_xaxis=False)
+
+    max_rank = int(np.round(df_rank_vs_size['log_rank'].max(), decimals=0))
+    ax.set_xticks(np.arange(0, max_rank + 1, 1))
+    tick_labels = ['1', '10', '100', '1K', '10K']
+    ax.set_xticklabels(tick_labels[:len(ax.get_xticks())])
+
     if plot_legend:
         ax.legend(loc='upper right', frameon=False, fontsize=style_config['label_font_size'], ncol=2, bbox_to_anchor=(0.25, 1.2))
     return fig, ax

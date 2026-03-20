@@ -9,7 +9,7 @@ from typing import Dict, Any
 
 
 from ....resources.resources import PostgresResource, TableNamesResource
-from ..figure_style import style_axes, style_config, annotate_letter_label, style_inset_axes
+from ..figure_style import style_axes, style_config, annotate_letter_label, style_inset_axes, format_population_ticks
 from ..figure_io import materialize_image, save_figure, read_pandas, save_latex_table, materialize_table
 from ...stats_utils import fit_penalized_b_spline, size_growth_slope_by_year_with_cis
 from ...constants import constants
@@ -20,7 +20,7 @@ MAIN_ANALYSIS_ID = constants['MAIN_ANALYSIS_ID']
 def _plot_size_growth_curve_usa_by_analysis_id(fig: plt.Figure, ax: plt.Axes, show_legend: bool, title: str, df_size_vs_growth_normalized: pd.DataFrame, df_average_growth: pd.DataFrame, map_analysis_id_to_urban_threshold: Dict[int, int])-> Tuple[plt.Figure, plt.Axes]:
     x_axis = 'log_population'
     y_axis = 'normalized_log_growth'
-    x_axis_label = r'$\mathbf{Size} \ (\log_{10}S_t)$'
+    x_axis_label = r'$\mathbf{Size}$ (log-scale)'
     y_axis_label = r'$\mathbf{Growth \ rate} \ (\log_{10}S_{t+10} \ / \ S_t)$'
 
     lam = constants['PENALTY_SIZE_GROWTH_CURVE']
@@ -38,6 +38,7 @@ def _plot_size_growth_curve_usa_by_analysis_id(fig: plt.Figure, ax: plt.Axes, sh
         ax.fill_between(x, average_log_growth_a + ci_low, average_log_growth_a + ci_high, color=color, alpha=0.1)
 
     style_axes(ax=ax, xlabel=x_axis_label, ylabel=y_axis_label, title=title)
+    format_population_ticks(ax=ax, is_xaxis=True)
     if show_legend:
         ax.legend(fontsize=style_config['label_font_size'], frameon=False, bbox_to_anchor=(1, -0.2), ncol=3)
     return fig, ax
