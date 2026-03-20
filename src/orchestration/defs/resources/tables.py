@@ -178,6 +178,9 @@ class WorldSources:
     def world_country_region(self) -> str:
         return "world_country_region"
 
+    def world_m49_region_raw(self) -> str:
+        return "world_m49_region_raw"
+
 @dataclass(frozen=True)
 class WorldTransformations:
     def world_cluster_base_matching(self) -> str:
@@ -284,6 +287,18 @@ class WorldSupplementaryInformation:
 
     def world_urban_population(self) -> str:
         return "world_urban_population"
+
+    def world_m49_size_growth_slopes(self) -> str:
+        return "world_m49_size_growth_slopes"
+
+    def world_m49_urbanization(self) -> str:
+        return "world_m49_urbanization"
+
+    def world_m49_size_growth_slopes_urbanization(self) -> str:
+        return "world_m49_size_growth_slopes_urbanization"
+
+    def world_avg_size_growth_slope_m49_borders(self) -> str:
+        return "world_avg_size_growth_slope_m49_borders"
 
 @dataclass(frozen=True)
 class World:

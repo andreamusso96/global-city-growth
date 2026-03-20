@@ -1,4 +1,50 @@
 models:
+  - name: world_m49_urbanization
+    description: "Population-weighted urban population share aggregated to UN M49 sub-regions for the main analysis."
+    columns:
+      - name: analysis_id
+        description: "The analysis id, fixed to the main analysis."
+      - name: micro_region
+        description: "The UN M49 sub-region name."
+      - name: year
+      - name: urban_population_share
+        description: "The population-weighted urban population share of the sub-region."
+      - name: population
+        description: "The total population of the sub-region in the given year."
+
+  - name: world_m49_size_growth_slopes_urbanization
+    description: "UN M49 sub-region-year size-growth slopes joined to weighted urbanization, restricted to valid sub-regions."
+    columns:
+      - name: analysis_id
+        description: "The analysis id, fixed to the main analysis."
+      - name: micro_region
+        description: "The UN M49 sub-region name."
+      - name: year
+      - name: size_growth_slope
+        description: "The pooled size-growth slope of the sub-region-year."
+      - name: n_cities
+        description: "The number of cities pooled in the sub-region-year curve."
+      - name: min_n_cities
+        description: "The minimum city count of the sub-region across years."
+      - name: urban_population_share
+        description: "The population-weighted urban population share of the sub-region."
+
+  - name: world_avg_size_growth_slope_m49_borders
+    description: "Average UN M49 sub-region size-growth slope across the period of observation, with dissolved borders."
+    columns:
+      - name: analysis_id
+        description: "The analysis id, fixed to the main analysis."
+      - name: micro_region
+        description: "The UN M49 sub-region name."
+      - name: size_growth_slope
+        description: "The average size-growth slope across available years for the sub-region."
+      - name: min_n_cities
+        description: "The minimum city count of the sub-region across years."
+      - name: has_data
+        description: "Whether the sub-region has valid slope data after exclusions."
+      - name: geom
+        description: "The dissolved sub-region borders in Mollweide projection (EPSG:54009)."
+
   - name: world_rank_size_slopes_ols_decade_change
     description: "The change in the rank-size slope (estimated with OLS) over one decade. This table is to compare spline based esitimates of the rank-size slope to OLS estimate in the Supplementary Information."
     columns:

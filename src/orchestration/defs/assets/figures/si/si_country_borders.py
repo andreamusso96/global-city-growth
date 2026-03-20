@@ -1,5 +1,4 @@
-from pathlib import Path
-from typing import List, Tuple
+from typing import Tuple
 
 import dagster as dg
 import geopandas as gpd
@@ -13,7 +12,7 @@ from matplotlib.colors import to_rgba
 
 from ....resources.resources import PostgresResource, TableNamesResource
 from ...constants import constants
-from ...stats_utils import fit_penalized_b_spline, get_mean_derivative_penalized_b_spline
+from ...stats_utils import fit_penalized_b_spline
 from ..figure_io import materialize_image, read_pandas, read_postgis, save_figure
 from ..figure_style import (
     annotate_letter_label,
@@ -24,170 +23,25 @@ from ..figure_style import (
 )
 
 MAIN_ANALYSIS_ID = constants["MAIN_ANALYSIS_ID"]
-PENALTY_SIZE_GROWTH_CURVE = constants["PENALTY_SIZE_GROWTH_CURVE"]
 PENALTY_SLOPE_SPLINE = constants["PENALTY_SLOPE_SPLINE"]
 
-MIN_SUBREGION_CITY_COUNT = 50
 FIGURE_FILE_NAME = "si_figure_country_borders.png"
-WORLD_POPULATION_TABLE = "world_population"
 
-
-def _resolve_micro_regions_path() -> Path:
-    repo_root = Path(__file__).resolve().parents[6]
-    candidates = [
-        repo_root / "revisions2" / "data" / "micro-regions.csv",
-        Path.cwd() / "revisions2" / "data" / "micro-regions.csv",
-    ]
-    for path in candidates:
-        if path.exists():
-            return path
-    raise FileNotFoundError("Could not locate revisions2/data/micro-regions.csv")
-
-
-def _load_micro_regions() -> pd.DataFrame:
-    path = _resolve_micro_regions_path()
-    df = pd.read_csv(path, sep=";")
-    df = df[["Sub-region Name", "ISO-alpha3 Code"]].rename(
-        columns={"Sub-region Name": "micro_region", "ISO-alpha3 Code": "country"}
-    )
-    return df.dropna().drop_duplicates().reset_index(drop=True)
-
-
-def _get_subregion_borders(
+def _load_plot_data(
     postgres: PostgresResource,
     tables: TableNamesResource,
-    micro_regions: pd.DataFrame,
-) -> gpd.GeoDataFrame:
-    country_borders = read_postgis(
+) -> Tuple[gpd.GeoDataFrame, pd.DataFrame]:
+    subregion_map = read_postgis(
         engine=postgres.get_engine(),
-        table=tables.names.world.figures.world_average_size_growth_slope_with_borders(),
+        table=tables.names.world.si.world_avg_size_growth_slope_m49_borders(),
         analysis_id=MAIN_ANALYSIS_ID,
-        cols="country, geom",
     )
-    country_borders = country_borders.drop_duplicates(subset=["country"]).merge(
-        micro_regions, on="country", how="left"
-    )
-    country_borders["micro_region"] = country_borders["micro_region"].fillna("Other")
-    country_borders = gpd.GeoDataFrame(
-        country_borders[["micro_region", "geom"]],
-        geometry="geom",
-        crs=country_borders.crs,
-    )
-    subregion_borders = country_borders.dissolve(by="micro_region").reset_index()
-    return gpd.GeoDataFrame(subregion_borders, geometry="geom", crs=country_borders.crs)
-
-
-def _get_subregion_slopes(
-    postgres: PostgresResource,
-    tables: TableNamesResource,
-    micro_regions: pd.DataFrame,
-) -> pd.DataFrame:
-    size_vs_growth = read_pandas(
+    slopes_urbanization = read_pandas(
         engine=postgres.get_engine(),
-        table=tables.names.world.figures.world_size_vs_growth(),
+        table=tables.names.world.si.world_m49_size_growth_slopes_urbanization(),
         analysis_id=MAIN_ANALYSIS_ID,
-        cols="country, year, log_population, log_growth",
     )
-    size_vs_growth = size_vs_growth.merge(micro_regions, on="country", how="inner")
-
-    rows = []
-    grouped = size_vs_growth.groupby(["micro_region", "year"], sort=True)
-    for (micro_region, year), df_group in grouped:
-        rows.append(
-            {
-                "micro_region": micro_region,
-                "year": year,
-                "size_growth_slope": get_mean_derivative_penalized_b_spline(
-                    df=df_group,
-                    xaxis="log_population",
-                    yaxis="log_growth",
-                    lam=PENALTY_SIZE_GROWTH_CURVE,
-                ),
-                "n_cities": df_group.shape[0],
-            }
-        )
-
-    return pd.DataFrame(rows)
-
-
-def _get_subregion_urbanization(
-    postgres: PostgresResource,
-    tables: TableNamesResource,
-    micro_regions: pd.DataFrame,
-) -> pd.DataFrame:
-    q = f"""
-    SELECT  p.country,
-            p.year,
-            p.population,
-            u.urban_population_share
-    FROM {WORLD_POPULATION_TABLE} p
-    JOIN {tables.names.world.figures.world_urbanization()} u
-    USING (country, year)
-    WHERE year >= 1975 AND year <= 2025
-    """
-    urbanization = pd.read_sql(q, con=postgres.get_engine())
-    urbanization = urbanization.merge(micro_regions, on="country", how="inner")
-    urbanization["weighted_urban_population_share"] = (
-        urbanization["urban_population_share"] * urbanization["population"]
-    )
-    urbanization = (
-        urbanization.groupby(["micro_region", "year"], as_index=False)
-        .agg(
-            weighted_urban_population_share=("weighted_urban_population_share", "sum"),
-            population=("population", "sum"),
-        )
-        .assign(
-            urban_population_share=lambda df: (
-                df["weighted_urban_population_share"] / df["population"]
-            )
-        )
-    )
-    return urbanization[["micro_region", "year", "urban_population_share"]]
-
-
-def _prepare_plot_data(
-    postgres: PostgresResource,
-    tables: TableNamesResource,
-) -> Tuple[gpd.GeoDataFrame, pd.DataFrame, List[str]]:
-    micro_regions = _load_micro_regions()
-    subregion_borders = _get_subregion_borders(
-        postgres=postgres, tables=tables, micro_regions=micro_regions
-    )
-    subregion_slopes = _get_subregion_slopes(
-        postgres=postgres, tables=tables, micro_regions=micro_regions
-    )
-    subregion_urbanization = _get_subregion_urbanization(
-        postgres=postgres, tables=tables, micro_regions=micro_regions
-    )
-
-    regions_to_drop = (
-        subregion_slopes.groupby("micro_region")["n_cities"].min().reset_index()
-    )
-    regions_to_drop = regions_to_drop[
-        regions_to_drop["n_cities"] < MIN_SUBREGION_CITY_COUNT
-    ]["micro_region"].tolist()
-    regions_to_drop = sorted(set(regions_to_drop + ["Other"]))
-
-    slopes_valid = subregion_slopes[
-        ~subregion_slopes["micro_region"].isin(regions_to_drop)
-    ].copy()
-    slopes_map = (
-        slopes_valid.groupby("micro_region", as_index=False)["size_growth_slope"]
-        .mean()
-    )
-
-    subregion_map = subregion_borders.merge(slopes_map, on="micro_region", how="left")
-    subregion_map.loc[
-        subregion_map["micro_region"].isin(regions_to_drop), "size_growth_slope"
-    ] = np.nan
-    subregion_map = gpd.GeoDataFrame(
-        subregion_map, geometry="geom", crs=subregion_borders.crs
-    )
-
-    slopes_urbanization = slopes_valid.merge(
-        subregion_urbanization, on=["micro_region", "year"], how="inner"
-    )
-    return subregion_map, slopes_urbanization, regions_to_drop
+    return subregion_map, slopes_urbanization
 
 
 def _get_cmap_and_norm(values: pd.Series) -> Tuple[mcolors.Colormap, mcolors.Normalize]:
@@ -293,10 +147,8 @@ def _plot_slope_density_inset(ax: plt.Axes, df: pd.DataFrame) -> plt.Axes:
 
 @dg.asset(
     deps=[
-        TableNamesResource().names.world.figures.world_size_vs_growth(),
-        TableNamesResource().names.world.figures.world_average_size_growth_slope_with_borders(),
-        TableNamesResource().names.world.figures.world_urbanization(),
-        dg.AssetKey("world_population"),
+        TableNamesResource().names.world.si.world_avg_size_growth_slope_m49_borders(),
+        TableNamesResource().names.world.si.world_m49_size_growth_slopes_urbanization(),
     ],
     group_name="si_figures",
 )
@@ -307,12 +159,14 @@ def si_figure_country_borders(
 ) -> dg.MaterializeResult:
     apply_figure_theme()
     context.log.info("Creating SI figure: UN M49 sub-region robustness")
-    context.log.info(f"Loading M49 sub-regions from {_resolve_micro_regions_path()}")
 
-    subregion_map, slopes_urbanization, regions_to_drop = _prepare_plot_data(
+    subregion_map, slopes_urbanization = _load_plot_data(
         postgres=postgres, tables=tables
     )
-    context.log.info(f"Regions plotted without data: {regions_to_drop}")
+    regions_without_data = sorted(
+        subregion_map.loc[~subregion_map["has_data"], "micro_region"].tolist()
+    )
+    context.log.info(f"Regions plotted without data: {regions_without_data}")
 
     fig, ax_map = plt.subplots(figsize=(10, 6))
     _plot_subregion_map(fig=fig, ax=ax_map, gdf=subregion_map)
@@ -321,10 +175,5 @@ def si_figure_country_borders(
     ax_inset_right = fig.add_axes([0.64, 0.20, 0.09, 0.16])
     _plot_slope_vs_urbanization_inset(ax=ax_inset_left, df=slopes_urbanization)
     _plot_slope_density_inset(ax=ax_inset_right, df=slopes_urbanization)
-
-    annotate_letter_label(
-        axes=[ax_map, ax_inset_left, ax_inset_right],
-        left_side=[True, True, True],
-    )
     save_figure(fig=fig, figure_file_name=FIGURE_FILE_NAME, si=True)
     return materialize_image(figure_file_name=FIGURE_FILE_NAME, si=True)

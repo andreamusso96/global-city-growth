@@ -7,11 +7,11 @@ from .defs.assets.transformation.download import raw_data_zenodo, ipums_usa_full
 from .defs.assets.transformation.ipums_full_count import ipums_full_count_raw, crosswalk_hist_id_to_hist_census_place_raw, ipums_full_count_clean, crosswalk_hist_id_to_hist_census_place_clean, ipums_full_count_census_place_id, ipums_full_count_census_place_id_all_years, census_place_population, ipums_full_count_individual_migration, census_place_migration
 from .defs.assets.transformation.usa_sources import usa_hist_census_place_population, usa_hist_census_place_migration, usa_nhgis_census_place_population_1990_2020_raw, usa_nhgis_census_place_geom_all_years_raw, usa_hist_census_place_geom_raw, usa_states_geom_raw, usa_cbsa_geom_2010_raw, usa_cbsa_geom_2020_raw, usa_county_geom_2010_raw, usa_county_population_raw
 from .defs.assets.transformation.usa import usa_crosswalk_nhgis_census_place_to_connected_component, usa_raster_census_place_convolved_year, usa_raster_census_place_convolved_all_years, usa_crosswalk_component_id_to_cluster_id, usa_crosswalk_component_id_to_cbsa_id
-from .defs.assets.transformation.world_sources import world_raster_ghsl_pop, world_raster_ghsl_smod, world_country_borders_raw, world_urbanization_raw, world_crosswalk_cshapes_code_to_iso_code, world_raster_ghsl_pop_all_years, world_raster_ghsl_smod_all_years, world_country_region, world_population_raw
+from .defs.assets.transformation.world_sources import world_raster_ghsl_pop, world_raster_ghsl_smod, world_country_borders_raw, world_urbanization_raw, world_crosswalk_cshapes_code_to_iso_code, world_raster_ghsl_pop_all_years, world_raster_ghsl_smod_all_years, world_country_region, world_m49_region_raw, world_population_raw
 from .defs.assets.transformation.world import world_crosswalk_component_id_to_cluster_id
 from .defs.assets.analysis.world_analysis import world_size_growth_slopes_historical, world_rank_size_slopes_historical, world_region_regression_with_urbanization_controls, world_size_growth_slopes_projections
 from .defs.assets.analysis.usa_analysis import usa_rank_size_slopes
-from .defs.assets.analysis.si.si_analysis import world_size_growth_slopes_historical_ols, world_rank_size_slopes_historical_ols, world_linearity_test_rank_vs_size, world_linearity_test_size_vs_growth
+from .defs.assets.analysis.si.si_analysis import world_size_growth_slopes_historical_ols, world_rank_size_slopes_historical_ols, world_linearity_test_rank_vs_size, world_linearity_test_size_vs_growth, world_m49_size_growth_slopes
 from .defs.assets.figures.figure_1 import figure_1_map, figure_1_plots
 from .defs.assets.figures.figure_2 import figure_2
 from .defs.assets.figures.figure_3 import figure_3
@@ -101,6 +101,7 @@ defs = Definitions(
         world_urbanization_raw,
         world_crosswalk_cshapes_code_to_iso_code,
         world_country_region,
+        world_m49_region_raw,
         world_population_raw,
 
         ## World Intermediate
@@ -130,6 +131,7 @@ defs = Definitions(
         world_rank_size_slopes_historical_ols,
         world_linearity_test_rank_vs_size,
         world_linearity_test_size_vs_growth,
+        world_m49_size_growth_slopes,
 
         ## Supplementary Information
         si_figure_linear_vs_spline,

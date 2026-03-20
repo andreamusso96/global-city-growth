@@ -238,7 +238,7 @@ def _plot_panel_d(
     style_axes(
         ax=ax,
         xlabel=r"$\mathbf{Size\!-\!growth \ slope \ \beta}$",
-        ylabel="Density",
+        ylabel=r"$\mathbf{Density}$",
     )
     ax.xaxis.set_major_locator(MaxNLocator(5))
     return ax

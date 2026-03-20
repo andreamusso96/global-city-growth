@@ -214,7 +214,27 @@ def world_country_region(context: dg.AssetExecutionContext, storage: StorageReso
     context.log.info(f"Copying countries with region and subregion from {countries_with_regions_path}")
     countries_with_regions_df = pd.read_csv(countries_with_regions_path)
     return countries_with_regions_df
-    
+
+
+@dg.asset(
+    deps=[raw_data_zenodo],
+    kinds={'postgres'},
+    group_name="world_raw",
+    io_manager_key="postgres_io_manager",
+    metadata={
+        "dagster/column_schema": dg.TableSchema([
+            dg.TableColumn(name="Sub-region Name", type="string", description="The UN M49 sub-region name"),
+            dg.TableColumn(name="ISO-alpha3 Code", type="string", description="The ISO alpha-3 country code"),
+        ])
+    }
+)
+def world_m49_region_raw(context: dg.AssetExecutionContext, storage: StorageResource):
+    """UN M49 sub-regions by country"""
+    micro_regions_path = storage.paths.world.misc.micro_regions()
+    context.log.info(f"Copying UN M49 sub-regions from {micro_regions_path}")
+    micro_regions_df = pd.read_csv(micro_regions_path, sep=';')
+    return micro_regions_df
+
 
 
 @dg.asset(

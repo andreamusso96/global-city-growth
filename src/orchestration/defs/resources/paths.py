@@ -111,6 +111,9 @@ class MiscPaths:
     def countries_with_regions(self) -> Path:
         return self.root / "countries_with_regions.csv"
 
+    def micro_regions(self) -> Path:
+        return self.root / "micro-regions.csv"
+
 
 @dataclass(frozen=True)
 class WorldPaths:

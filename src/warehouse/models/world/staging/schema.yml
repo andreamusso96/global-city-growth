@@ -30,3 +30,11 @@ models:
       - name: country
       - name: year
       - name: urban_population_share
+
+  - name: world_m49_region
+    description: "Cleaned UN M49 sub-region mapping by country"
+    columns:
+      - name: country
+        description: "The cleaned ISO-3 country code used by the warehouse"
+      - name: micro_region
+        description: "The UN M49 sub-region name"

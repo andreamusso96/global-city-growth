@@ -16,4 +16,5 @@ sources:
     tables:
       - name: world_urbanization_raw
       - name: world_country_region
+      - name: world_m49_region_raw
       - name: world_population_raw

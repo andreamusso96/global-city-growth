@@ -8,7 +8,7 @@ from scipy.stats import norm
 
 from ....resources.resources import PostgresResource, TableNamesResource
 from ...constants import constants
-from ...stats_utils import get_ols_slope
+from ...stats_utils import get_mean_derivative_penalized_b_spline, get_ols_slope
 from ...constants import constants
 
 MAIN_ANALYSIS_ID = constants['MAIN_ANALYSIS_ID']
@@ -172,3 +172,70 @@ def world_linearity_test_rank_vs_size(context: dg.AssetExecutionContext, postgre
     df = pd.read_sql(f"SELECT * FROM {tables.names.world.figures.world_rank_vs_size()}", con=postgres.get_engine())
     test_results = df.groupby(['analysis_id', 'country', 'year']).apply(lambda x: _measure_distortion_rank_size_curve(df=x, x_axis='log_rank', y_axis='log_population')).reset_index().rename(columns={0: 'max_resid'})
     return test_results
+
+
+@dg.asset(
+    deps=[
+        TableNamesResource().names.world.figures.world_size_vs_growth(),
+        dg.AssetKey("world_m49_region"),
+    ],
+    kinds={'postgres'},
+    group_name="si_analysis",
+    io_manager_key="postgres_io_manager",
+    metadata={
+        "dagster/column_schema": dg.TableSchema([
+            dg.TableColumn(name="analysis_id", type="int", description="The analysis id, fixed to the main analysis"),
+            dg.TableColumn(name="micro_region", type="string", description="The UN M49 sub-region name"),
+            dg.TableColumn(name="year", type="int", description="The start year of the decade"),
+            dg.TableColumn(name="size_growth_slope", type="float", description="The average spline derivative of the micro-region size-growth curve"),
+            dg.TableColumn(name="n_cities", type="int", description="The number of cities pooled in the micro-region-year curve"),
+        ])
+    }
+)
+def world_m49_size_growth_slopes(
+    context: dg.AssetExecutionContext,
+    postgres: PostgresResource,
+    tables: TableNamesResource,
+) -> pd.DataFrame:
+    """Size-growth slopes pooled at the UN M49 sub-region-year level for the main analysis."""
+
+    context.log.info("Calculating world M49 size-growth slopes")
+    xaxis = 'log_population'
+    yaxis = 'log_growth'
+    lam = constants['PENALTY_SIZE_GROWTH_CURVE']
+
+    q = f"""
+    SELECT  country,
+            year,
+            log_population,
+            log_growth,
+            analysis_id
+    FROM {tables.names.world.figures.world_size_vs_growth()}
+    WHERE analysis_id = {MAIN_ANALYSIS_ID}
+    """
+    world_size_vs_growth = pd.read_sql(q, con=postgres.get_engine())
+    world_m49_region = pd.read_sql(
+        "SELECT country, micro_region FROM world_m49_region",
+        con=postgres.get_engine(),
+    )
+
+    df = world_size_vs_growth.merge(world_m49_region, on='country', how='inner')
+    slopes = (
+        df.groupby(['micro_region', 'year'], sort=True)
+        .apply(
+            lambda x: pd.Series(
+                {
+                    'size_growth_slope': get_mean_derivative_penalized_b_spline(
+                        df=x,
+                        xaxis=xaxis,
+                        yaxis=yaxis,
+                        lam=lam,
+                    ),
+                    'n_cities': x.shape[0],
+                }
+            )
+        )
+        .reset_index()
+    )
+    slopes['analysis_id'] = MAIN_ANALYSIS_ID
+    return slopes[['analysis_id', 'micro_region', 'year', 'size_growth_slope', 'n_cities']]

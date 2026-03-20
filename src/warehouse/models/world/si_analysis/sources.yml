@@ -3,3 +3,4 @@ sources:
     schema: public
     tables:
       - name: world_rank_size_slopes_historical_ols
+      - name: world_m49_size_growth_slopes
