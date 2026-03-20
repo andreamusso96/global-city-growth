@@ -24,6 +24,7 @@ This README references the primary works describing each dataset rather than exp
 | GHSL (GHS-POP, GHS-SMOD)                    | **Included**                            | CC BY 4.0                               | `R2023A`                 | Copernicus EMS (GHSL)                                      |
 | CShapes 2.0                                 | **Included**                            | CC BY-NC-SA                             | `2.0`                    | [https://cshapes.org/](https://cshapes.org/)               |
 | CShapes → ISO/World Bank Crosswalk          | **Included**                            | CC BY 4.0                               |                          | This repository                                            |
+| UN M49 Sub-region Mapping                   | **Included**                            | UN data terms of use                    |                          | UN Statistics Division (M49)                               |
 | Our World in Data (population/urbanization) | **Included**                            | CC BY 4.0                               |                          | [https://ourworldindata.org/](https://ourworldindata.org/) |
 | Our World in Data (population/urbanization) | **Included**                            | CC BY 4.0                               |                          | DOI: `https://doi.org/10.6084/m9.figshare.c.5521821.v1` |
 
@@ -102,9 +103,18 @@ Here is detailed list of all datasets used in this project, including those prov
     * **Files:**
         * `world/misc/urban-population-share-with-projections.csv`
 
+* **UN M49 Sub-region Mapping**
+    * **Status**: Included in this repository
+    * **Description:** Country-to-sub-region mapping used for UN M49 robustness analyses.
+    * **Original Source:**
+        - [UN Statistics Division — Standard country or area codes for statistical use (M49)](https://unstats.un.org/unsd/methodology/m49/)
+    * **License:** UN data terms of use
+    * **Files:**
+        * `world/misc/micro-regions.csv`
+
 * **Handmade**
     * **Status**: Included in this repository
-    * **Description:** Crosswalk file mapping CShapes codes to World Bank country codes and crosswalk file mapping countries to regions (Asia, Africa, Americas and Europe)
+    * **Description:** Crosswalk file mapping CShapes codes to World Bank country codes and manual country-to-region grouping (Asia, Africa, Americas and Europe)
     * **Original Source:** Handmade by the author of this repository
     * **License:** CC-BY-4.0
     * **Files:**
