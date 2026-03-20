@@ -1,0 +1,72 @@
+models:
+  - name: usa_cbsa_base_geom
+    description: "The geometry of the base CBSA polygons standardized to the cluster-growth pipeline schema. Geometries are simplified with a 1 km topology-preserving tolerance and then made valid again because this branch only needs stable county-scale boundary matching."
+    columns:
+      - name: cluster_id
+        description: "The CBSA identifier used as the base geometry id."
+      - name: year
+        description: "The source year of the CBSA geometry."
+      - name: urban_threshold
+        description: "A dummy threshold used to mirror the cluster-growth pipeline."
+      - name: geom
+        description: "The simplified geometry of the base CBSA polygon in EPSG:5070."
+
+  - name: usa_cbsa_base_matching
+    description: "Matching between 2010 and 2020 CBSA polygons. The join first uses the indexed original geometries to generate candidate overlaps, then applies the inward-buffered intersection criterion."
+    columns:
+      - name: left_cluster_id
+        description: "The CBSA identifier of the 2010 polygon."
+      - name: right_cluster_id
+        description: "The CBSA identifier of the matched 2020 polygon."
+      - name: y1
+        description: "The start year of the stable-boundary pair."
+      - name: y2
+        description: "The end year of the stable-boundary pair."
+      - name: urban_threshold
+        description: "A dummy threshold used to mirror the cluster-growth pipeline."
+
+  - name: usa_cbsa_growth_geom
+    description: "Stable CBSA growth boundaries obtained by taking connected components in the CBSA matching graph and unioning the member polygons."
+    columns:
+      - name: cluster_id
+        description: "The deterministic stable-boundary identifier."
+      - name: y1
+        description: "The start year of the stable-boundary pair."
+      - name: y2
+        description: "The end year of the stable-boundary pair."
+      - name: urban_threshold
+        description: "The dummy threshold carried through the pipeline."
+      - name: geom
+        description: "The stable CBSA growth geometry in EPSG:5070."
+
+  - name: usa_crosswalk_county_to_cbsa_growth
+    description: "County-to-stable-CBSA crosswalk based on area overlap."
+    columns:
+      - name: cluster_id
+        description: "see usa_cbsa_growth_geom"
+      - name: county_id
+        description: "see usa_county_geom"
+      - name: county_geoid
+        description: "see usa_county_geom"
+      - name: area_county
+        description: "The area of the county polygon."
+      - name: area_intersection
+        description: "The area of the county polygon intersecting the stable CBSA growth boundary."
+      - name: area_share_county
+        description: "The county area share assigned to the stable CBSA growth boundary."
+
+  - name: usa_cbsa_growth_population
+    description: "The population of stable CBSA growth boundaries at y1 and y2."
+    columns:
+      - name: cluster_id
+        description: "see usa_cbsa_growth_geom"
+      - name: y1
+        description: "see usa_cbsa_growth_geom"
+      - name: y2
+        description: "see usa_cbsa_growth_geom"
+      - name: urban_threshold
+        description: "The dummy threshold carried through the pipeline."
+      - name: population_y1
+        description: "The population at the start year."
+      - name: population_y2
+        description: "The population at the end year."

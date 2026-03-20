@@ -3,10 +3,10 @@ from dagster import Definitions, in_process_executor, AssetSelection, define_ass
 
 from .defs.assets.dbt import dbt_warehouse
 from .defs.resources.resources import duckdb_resource, storage_resource, postgres_resource, dbt_resource, table_names_resource, pipes_subprocess_resource, postgres_pandas_io_manager, ipums_api_client
-from .defs.assets.transformation.download import raw_data_zenodo, ipums_usa_full_count_downloaded, nhgis_place_population_1990_2020_downloaded, nhgis_place_geom_1900_2010_downloaded
+from .defs.assets.transformation.download import raw_data_zenodo, ipums_usa_full_count_downloaded, nhgis_place_population_1990_2020_downloaded, nhgis_place_geom_1900_2010_downloaded, nhgis_county_population_1990_2020_downloaded, nhgis_county_geom_2010_downloaded, nhgis_cbsa_geom_2010_2020_downloaded
 from .defs.assets.transformation.ipums_full_count import ipums_full_count_raw, crosswalk_hist_id_to_hist_census_place_raw, ipums_full_count_clean, crosswalk_hist_id_to_hist_census_place_clean, ipums_full_count_census_place_id, ipums_full_count_census_place_id_all_years, census_place_population, ipums_full_count_individual_migration, census_place_migration
-from .defs.assets.transformation.usa_sources import usa_hist_census_place_population, usa_hist_census_place_migration, usa_nhgis_census_place_population_1990_2020_raw, usa_nhgis_census_place_geom_all_years_raw, usa_hist_census_place_geom_raw, usa_states_geom_raw
-from .defs.assets.transformation.usa import usa_crosswalk_nhgis_census_place_to_connected_component, usa_raster_census_place_convolved_year, usa_raster_census_place_convolved_all_years, usa_crosswalk_component_id_to_cluster_id
+from .defs.assets.transformation.usa_sources import usa_hist_census_place_population, usa_hist_census_place_migration, usa_nhgis_census_place_population_1990_2020_raw, usa_nhgis_census_place_geom_all_years_raw, usa_hist_census_place_geom_raw, usa_states_geom_raw, usa_cbsa_geom_2010_raw, usa_cbsa_geom_2020_raw, usa_county_geom_2010_raw, usa_county_population_raw
+from .defs.assets.transformation.usa import usa_crosswalk_nhgis_census_place_to_connected_component, usa_raster_census_place_convolved_year, usa_raster_census_place_convolved_all_years, usa_crosswalk_component_id_to_cluster_id, usa_crosswalk_component_id_to_cbsa_id
 from .defs.assets.transformation.world_sources import world_raster_ghsl_pop, world_raster_ghsl_smod, world_country_borders_raw, world_urbanization_raw, world_crosswalk_cshapes_code_to_iso_code, world_raster_ghsl_pop_all_years, world_raster_ghsl_smod_all_years, world_country_region, world_population_raw
 from .defs.assets.transformation.world import world_crosswalk_component_id_to_cluster_id
 from .defs.assets.analysis.world_analysis import world_size_growth_slopes_historical, world_rank_size_slopes_historical, world_region_regression_with_urbanization_controls, world_size_growth_slopes_projections
@@ -31,7 +31,7 @@ ipums_full_count_job = define_asset_job("2_ipums_full_count_job",
                                         selection=AssetSelection.groups("ipums_full_count_staging", "ipums_full_count_intermediate", "ipums_full_count_final"),
                                         description="Extract census place population estimates from the IPUMS USA Full Count data. Should run second.")
 usa_job = define_asset_job("3_usa_job", 
-                           selection=AssetSelection.groups("usa_raw", "usa_staging", "usa_intermediate_normalize_hist_data", "usa_intermediate_rasterize_census_places", "usa_intermediate_create_clusters"),
+                           selection=AssetSelection.groups("usa_raw", "usa_staging", "usa_intermediate_normalize_hist_data", "usa_intermediate_rasterize_census_places", "usa_intermediate_create_clusters", "usa_intermediate_create_cbsa_clusters"),
                            description="Clean the census place population estimates, create US population rasters, and extract clusters. Should run third.")
 
 
@@ -55,6 +55,9 @@ defs = Definitions(
         ipums_usa_full_count_downloaded,
         nhgis_place_population_1990_2020_downloaded,
         nhgis_place_geom_1900_2010_downloaded,
+        nhgis_county_population_1990_2020_downloaded,
+        nhgis_county_geom_2010_downloaded,
+        nhgis_cbsa_geom_2010_2020_downloaded,
 
         # USA
         ## IPUMS Full Count
@@ -75,12 +78,17 @@ defs = Definitions(
         usa_nhgis_census_place_geom_all_years_raw,
         usa_hist_census_place_geom_raw,
         usa_states_geom_raw,
+        usa_cbsa_geom_2010_raw,
+        usa_cbsa_geom_2020_raw,
+        usa_county_geom_2010_raw,
+        usa_county_population_raw,
 
         ## USA Intermediate
         usa_crosswalk_nhgis_census_place_to_connected_component,
         usa_raster_census_place_convolved_year,
         usa_raster_census_place_convolved_all_years,
         usa_crosswalk_component_id_to_cluster_id,
+        usa_crosswalk_component_id_to_cbsa_id,
         
         # World
         ## World Raw

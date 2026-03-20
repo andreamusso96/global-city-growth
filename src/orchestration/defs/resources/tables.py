@@ -52,6 +52,18 @@ class USASources:
     
     def usa_states_geom_raw(self) -> str:
         return "usa_states_geom_raw"
+
+    def usa_cbsa_geom_2010_raw(self) -> str:
+        return "usa_cbsa_geom_2010_raw"
+
+    def usa_cbsa_geom_2020_raw(self) -> str:
+        return "usa_cbsa_geom_2020_raw"
+
+    def usa_county_geom_2010_raw(self) -> str:
+        return "usa_county_geom_2010_raw"
+
+    def usa_county_population_raw(self) -> str:
+        return "usa_county_population_raw"
     
 
 @dataclass(frozen=True)
@@ -79,6 +91,24 @@ class USATransformations:
     
     def usa_crosswalk_component_id_to_cluster_id(self) -> str:
         return "usa_crosswalk_component_id_to_cluster_id"
+
+    def usa_cbsa_base_geom(self) -> str:
+        return "usa_cbsa_base_geom"
+
+    def usa_cbsa_base_matching(self) -> str:
+        return "usa_cbsa_base_matching"
+
+    def usa_crosswalk_component_id_to_cbsa_id(self) -> str:
+        return "usa_crosswalk_component_id_to_cbsa_id"
+
+    def usa_cbsa_growth_geom(self) -> str:
+        return "usa_cbsa_growth_geom"
+
+    def usa_crosswalk_county_to_cbsa_growth(self) -> str:
+        return "usa_crosswalk_county_to_cbsa_growth"
+
+    def usa_cbsa_growth_population(self) -> str:
+        return "usa_cbsa_growth_population"
     
 @dataclass(frozen=True)
 class USAFigures:
@@ -102,6 +132,18 @@ class USAFigures:
 
     def usa_rank_size_slopes_change(self) -> str:
         return "usa_rank_size_slopes_change"
+
+    def usa_suburbanization_size_vs_growth(self) -> str:
+        return "usa_suburbanization_size_vs_growth"
+
+    def usa_suburbanization_average_growth(self) -> str:
+        return "usa_suburbanization_average_growth"
+
+    def usa_suburbanization_size_vs_growth_normalized(self) -> str:
+        return "usa_suburbanization_size_vs_growth_normalized"
+
+    def usa_suburbanization_base_neighbor_flags(self) -> str:
+        return "usa_suburbanization_base_neighbor_flags"
     
 @dataclass(frozen=True)
 class USA:

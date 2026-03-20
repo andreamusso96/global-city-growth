@@ -41,6 +41,20 @@ class USMiscPaths:
 
     def usa_state_geom(self) -> Path:
         return self.root / "States_shapefile.shp"
+
+
+@dataclass(frozen=True)
+class USASuburbanizationPaths:
+    root: Path
+
+    def cbsa_geom(self, year: int) -> Path:
+        return self.root / f"us_cbsa_{year}_shape" / f"US_cbsa_{year}.shp"
+
+    def county_geom_2010(self) -> Path:
+        return self.root / "us_county_2010_shape" / "US_county_2010.shp"
+
+    def county_population(self) -> Path:
+        return self.root / "us_county_2010_pop_ts" / "nhgis0112_ts_geog2010_county.csv"
     
 
 @dataclass(frozen=True)
@@ -49,6 +63,7 @@ class USAPaths:
     nhgis: NhgisPaths
     ipums_full_count: IpumsFullCountPaths
     misc: USMiscPaths
+    suburbanization: USASuburbanizationPaths
     
     @classmethod
     def from_root(cls, root: Path) -> "USAPaths":
@@ -56,7 +71,8 @@ class USAPaths:
             census_place_project=CensusPlaceProjectPaths(root / "census_place_project"),
             nhgis=NhgisPaths(root / "nhgis"),
             ipums_full_count=IpumsFullCountPaths(root / "ipums_full_count"),
-            misc=USMiscPaths(root / "misc")
+            misc=USMiscPaths(root / "misc"),
+            suburbanization=USASuburbanizationPaths(root / "suburbanization"),
         )
     
 

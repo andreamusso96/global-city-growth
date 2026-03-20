@@ -1,0 +1,5 @@
+sources:
+  - name: matching
+    schema: public
+    tables:
+      - name: usa_crosswalk_component_id_to_cbsa_id

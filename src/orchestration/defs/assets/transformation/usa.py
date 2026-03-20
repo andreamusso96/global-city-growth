@@ -220,4 +220,35 @@ def usa_crosswalk_component_id_to_cluster_id(context: dg.AssetExecutionContext, 
     )
 
 
+@dg.asset(
+    deps=[TableNamesResource().names.usa.transformations.usa_cbsa_base_matching()],
+    kinds={'postgres'},
+    group_name="usa_intermediate_create_cbsa_clusters",
+    metadata={
+        "dagster/column_schema": dg.TableSchema([
+            dg.TableColumn(name="component_id", type="INT", description="The ID of the connected component"),
+            dg.TableColumn(name="cluster_id", type="STR", description="see usa_cbsa_base_geom"),
+            dg.TableColumn(name="y1", type="INT", description="see usa_cbsa_base_geom"),
+            dg.TableColumn(name="y2", type="INT", description="see usa_cbsa_base_geom"),
+            dg.TableColumn(name="urban_threshold", type="INT", description="Dummy threshold used to mirror the cluster-growth pipeline"),
+        ])
+    }
+)
+def usa_crosswalk_component_id_to_cbsa_id(context: dg.AssetExecutionContext, postgres: PostgresResource, tables: TableNamesResource):
+    """
+    Crosswalk from connected components in the CBSA overlap graph to CBSA base geometries.
+    This mirrors the existing cluster-growth pattern: dbt builds the matching edges, Python extracts connected components,
+    and dbt then builds stable growth geometries from the resulting crosswalk.
+    """
+    context.log.info("Creating connected-component crosswalk for CBSA base matching")
+    years_threshold_pairs = [(2010, 2020, 0)]
+    crosswalk_component_id_to_cluster_id(
+        years_threshold_pairs=years_threshold_pairs,
+        matching_table_name=tables.names.usa.transformations.usa_cbsa_base_matching(),
+        crosswalk_table_name=tables.names.usa.transformations.usa_crosswalk_component_id_to_cbsa_id(),
+        context=context,
+        postgres=postgres,
+    )
+
+
     

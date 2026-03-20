@@ -16,3 +16,11 @@ sources:
     schema: public
     tables:
       - name: usa_states_geom_raw
+
+  - name: suburbanization
+    schema: public
+    tables:
+      - name: usa_cbsa_geom_2010_raw
+      - name: usa_cbsa_geom_2020_raw
+      - name: usa_county_geom_2010_raw
+      - name: usa_county_population_raw

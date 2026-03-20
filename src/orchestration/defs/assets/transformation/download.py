@@ -88,11 +88,11 @@ def _download_ipums_full_count_year(context: dg.AssetExecutionContext, storage: 
     return final_path.stat().st_size
 
 
-def _download_nhgis_1990_2020_place_population(context: dg.AssetExecutionContext, storage: StorageResource, ipums_api_client: IpumsAPIClientResource, table_name: str, years: List[str], geog_level: str) -> int:
+def _download_nhgis_time_series(context: dg.AssetExecutionContext, storage: StorageResource, ipums_api_client: IpumsAPIClientResource, description: str, table_name: str, years: List[str], geog_level: str, final_csv: Path) -> int:
     ipums = ipums_api_client.get_client()
     
     context.log.info(f"Submitting extract")
-    extract_id = ipums.submit_nhgis_time_series_extract_request(description="NHGIS time series: place population 1990-2020", time_series_table=table_name, geog_level=geog_level, years=years, data_format="csv_header")
+    extract_id = ipums.submit_nhgis_time_series_extract_request(description=description, time_series_table=table_name, geog_level=geog_level, years=years, data_format="csv_header")
     context.log.info(f"Extract submitted with id {extract_id}")
 
     context.log.info(f"Waiting for extract to finish")
@@ -109,19 +109,23 @@ def _download_nhgis_1990_2020_place_population(context: dg.AssetExecutionContext
 
     _unzip(zip_path=zip_path, dest_dir=download_dir)
 
-    unzipped_dir = download_dir / f"nhgis{extract_id:04d}_csv"
-    source_csv = unzipped_dir / f"nhgis{extract_id:04d}_ts_geog2010_place.csv"
-    final_csv = storage.paths.usa.nhgis.census_place_pop_1990_2020()
+    matching_csvs = list(download_dir.rglob(f"nhgis*_ts_geog2010_{geog_level}.csv"))
+    if len(matching_csvs) != 1:
+        raise ValueError(f"Expected exactly one NHGIS time-series csv for geog level '{geog_level}', found {len(matching_csvs)}")
+
+    source_csv = matching_csvs[0]
+    if final_csv.exists():
+        final_csv.unlink()
     _move(src=source_csv, dest=final_csv)
 
     shutil.rmtree(download_dir)
     return final_csv.stat().st_size
 
-def _download_nhgis_1900_2010_place_geom_year(context: dg.AssetExecutionContext, storage: StorageResource, ipums_api_client: IpumsAPIClientResource, year: int, shapefile_name: str) -> int:
+def _download_nhgis_shapefile(context: dg.AssetExecutionContext, storage: StorageResource, ipums_api_client: IpumsAPIClientResource, description: str, shapefile_name: str, final_dir: Path) -> int:
     ipums = ipums_api_client.get_client()
 
     context.log.info(f"Submitting extract")
-    extract_id = ipums.submit_nhgis_shapefile_extract_request(description=f"NHGIS Place Points {year}", shapefile_name=shapefile_name)
+    extract_id = ipums.submit_nhgis_shapefile_extract_request(description=description, shapefile_name=shapefile_name)
     context.log.info(f"Extract submitted with id {extract_id}")
 
     context.log.info(f"Waiting for extract to finish")
@@ -138,14 +142,48 @@ def _download_nhgis_1900_2010_place_geom_year(context: dg.AssetExecutionContext,
 
     _unzip(zip_path=outer_zip_path, dest_dir=download_dir)
 
-    extracted_dir = download_dir / f"nhgis{extract_id:04d}_shape"
-    inner_zip_name = f"nhgis{extract_id:04d}_shapefile_tlgnis_us_place_point_{year}.zip"
-    inner_zip_path = extracted_dir / inner_zip_name
+    inner_zip_candidates = [path for path in download_dir.rglob("*.zip") if path != outer_zip_path]
+    if len(inner_zip_candidates) == 0:
+        raise ValueError(f"No inner shapefile zip found for NHGIS shapefile '{shapefile_name}'")
 
-    final_dir = storage.paths.usa.nhgis.census_place_geom_folder(year=year)
-    _unzip(zip_path=inner_zip_path, dest_dir=final_dir) 
+    matching_inner_zips = [path for path in inner_zip_candidates if shapefile_name in path.name]
+    if len(matching_inner_zips) == 1:
+        inner_zip_path = matching_inner_zips[0]
+    elif len(inner_zip_candidates) == 1:
+        inner_zip_path = inner_zip_candidates[0]
+    else:
+        raise ValueError(f"Could not uniquely identify inner shapefile zip for '{shapefile_name}'")
+
+    if final_dir.exists():
+        shutil.rmtree(final_dir)
+    final_dir.mkdir(parents=True, exist_ok=True)
+    _unzip(zip_path=inner_zip_path, dest_dir=final_dir)
     shutil.rmtree(download_dir)
     return final_dir.stat().st_size
+
+
+def _download_nhgis_1990_2020_place_population(context: dg.AssetExecutionContext, storage: StorageResource, ipums_api_client: IpumsAPIClientResource, table_name: str, years: List[str], geog_level: str) -> int:
+    return _download_nhgis_time_series(
+        context=context,
+        storage=storage,
+        ipums_api_client=ipums_api_client,
+        description="NHGIS time series: place population 1990-2020",
+        table_name=table_name,
+        years=years,
+        geog_level=geog_level,
+        final_csv=storage.paths.usa.nhgis.census_place_pop_1990_2020(),
+    )
+
+
+def _download_nhgis_1900_2010_place_geom_year(context: dg.AssetExecutionContext, storage: StorageResource, ipums_api_client: IpumsAPIClientResource, year: int, shapefile_name: str) -> int:
+    return _download_nhgis_shapefile(
+        context=context,
+        storage=storage,
+        ipums_api_client=ipums_api_client,
+        description=f"NHGIS Place Points {year}",
+        shapefile_name=shapefile_name,
+        final_dir=storage.paths.usa.nhgis.census_place_geom_folder(year=year),
+    )
 
 
 def _load_data_catalog(path: Path) -> Dict[str, Any]:
@@ -177,6 +215,31 @@ def _get_inputs_nhgis_place_population_1990_2020(data_catalog: Dict[str, Any]) -
 
 def _get_inputs_nhgis_place_geom_1900_2010(data_catalog: Dict[str, Any]) -> Tuple[List[str], str]:
     nhgis_inputs = data_catalog["nhgis_place_geom_1900_2010"]
+    extract_definitions = nhgis_inputs["extract_definitions"]
+    years = extract_definitions["years"]
+    shapefile_name_template = extract_definitions["shapefile_name_template"]
+    return years, shapefile_name_template
+
+
+def _get_inputs_nhgis_county_population_1990_2020(data_catalog: Dict[str, Any]) -> Tuple[str, List[str], str]:
+    nhgis_inputs = data_catalog["nhgis_county_population_1990_2020"]
+    extract_definitions = nhgis_inputs["extract_definitions"]
+    table_name = extract_definitions["table_name"]
+    years = extract_definitions["years"]
+    geog_level = extract_definitions["geog_level"]
+    return table_name, years, geog_level
+
+
+def _get_inputs_nhgis_county_geom_2010(data_catalog: Dict[str, Any]) -> Tuple[List[str], str]:
+    nhgis_inputs = data_catalog["nhgis_county_geom_2010"]
+    extract_definitions = nhgis_inputs["extract_definitions"]
+    years = extract_definitions["years"]
+    shapefile_name_template = extract_definitions["shapefile_name_template"]
+    return years, shapefile_name_template
+
+
+def _get_inputs_nhgis_cbsa_geom_2010_2020(data_catalog: Dict[str, Any]) -> Tuple[List[str], str]:
+    nhgis_inputs = data_catalog["nhgis_cbsa_geom_2010_2020"]
     extract_definitions = nhgis_inputs["extract_definitions"]
     years = extract_definitions["years"]
     shapefile_name_template = extract_definitions["shapefile_name_template"]
@@ -241,6 +304,78 @@ def nhgis_place_geom_1900_2010_downloaded(context: dg.AssetExecutionContext, sto
     for year, shapefile_name in year_shapefile_name:
         context.log.info(f"Downloading NHGIS Place Geometry {year} {shapefile_name}")
         size = _download_nhgis_1900_2010_place_geom_year(context=context, storage=storage, ipums_api_client=ipums_api_client, year=year, shapefile_name=shapefile_name)
+        total_size += size
+
+    return dg.Output(value=total_size, metadata={"size": total_size})
+
+
+@dg.asset(
+    group_name="download",
+    deps=[raw_data_zenodo],
+)
+def nhgis_county_population_1990_2020_downloaded(context: dg.AssetExecutionContext, storage: StorageResource, ipums_api_client: IpumsAPIClientResource):
+    """NHGIS County Population 1990-2020 standardized to 2010 geography."""
+    context.log.info("Downloading NHGIS County Population 1990-2020")
+    data_catalog = _load_data_catalog(path=storage.data_catalog_path)
+    table_name, years, geog_level = _get_inputs_nhgis_county_population_1990_2020(data_catalog=data_catalog)
+    size = _download_nhgis_time_series(
+        context=context,
+        storage=storage,
+        ipums_api_client=ipums_api_client,
+        description="NHGIS time series: county population 1990-2020",
+        table_name=table_name,
+        years=years,
+        geog_level=geog_level,
+        final_csv=storage.paths.usa.suburbanization.county_population(),
+    )
+    return dg.Output(value=size, metadata={"size": size})
+
+
+@dg.asset(
+    group_name="download",
+    deps=[raw_data_zenodo],
+)
+def nhgis_county_geom_2010_downloaded(context: dg.AssetExecutionContext, storage: StorageResource, ipums_api_client: IpumsAPIClientResource):
+    """NHGIS County Geometry 2010."""
+    context.log.info("Downloading NHGIS County Geometry 2010")
+    data_catalog = _load_data_catalog(path=storage.data_catalog_path)
+    years, shapefile_name_template = _get_inputs_nhgis_county_geom_2010(data_catalog=data_catalog)
+    total_size = 0
+    for year in years:
+        shapefile_name = shapefile_name_template.format(year=year)
+        size = _download_nhgis_shapefile(
+            context=context,
+            storage=storage,
+            ipums_api_client=ipums_api_client,
+            description=f"NHGIS County Geometry {year}",
+            shapefile_name=shapefile_name,
+            final_dir=storage.paths.usa.suburbanization.county_geom_2010().parent,
+        )
+        total_size += size
+
+    return dg.Output(value=total_size, metadata={"size": total_size})
+
+
+@dg.asset(
+    group_name="download",
+    deps=[raw_data_zenodo],
+)
+def nhgis_cbsa_geom_2010_2020_downloaded(context: dg.AssetExecutionContext, storage: StorageResource, ipums_api_client: IpumsAPIClientResource):
+    """NHGIS CBSA Geometry 2010 and 2020."""
+    context.log.info("Downloading NHGIS CBSA Geometry 2010 and 2020")
+    data_catalog = _load_data_catalog(path=storage.data_catalog_path)
+    years, shapefile_name_template = _get_inputs_nhgis_cbsa_geom_2010_2020(data_catalog=data_catalog)
+    total_size = 0
+    for year in years:
+        shapefile_name = shapefile_name_template.format(year=year)
+        size = _download_nhgis_shapefile(
+            context=context,
+            storage=storage,
+            ipums_api_client=ipums_api_client,
+            description=f"NHGIS CBSA Geometry {year}",
+            shapefile_name=shapefile_name,
+            final_dir=storage.paths.usa.suburbanization.cbsa_geom(year=int(year)).parent,
+        )
         total_size += size
 
     return dg.Output(value=total_size, metadata={"size": total_size})

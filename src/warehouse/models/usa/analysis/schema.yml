@@ -92,4 +92,77 @@ models:
         description: "The change in the rank-size slope from the base year to the given year."
       - name: analysis_id
         description: "see usa_cluster_growth_population_analysis"
-      
+
+  - name: usa_suburbanization_size_vs_growth
+    description: "The size-growth input table used for the suburbanization comparison in the USA."
+    columns:
+      - name: definition
+        description: "The city definition used in the comparison: base, density, or cbsa."
+      - name: cluster_id
+        description: "The city identifier under the given definition."
+      - name: year
+        description: "The start year of the decade."
+      - name: log_population
+        description: "The log10 population of the city at the start of the decade."
+      - name: log_growth
+        description: "The log10 growth of the city over the decade."
+
+  - name: usa_suburbanization_average_growth
+    description: "Average growth by city definition for the suburbanization comparison."
+    columns:
+      - name: definition
+        description: "The city definition used in the comparison."
+      - name: year
+        description: "The start year of the decade."
+      - name: log_average_growth
+        description: "The log10 average growth over the decade."
+
+  - name: usa_suburbanization_size_vs_growth_normalized
+    description: "The normalized size-growth input table used for panel B of the suburbanization comparison."
+    columns:
+      - name: definition
+        description: "The city definition used in the comparison."
+      - name: cluster_id
+        description: "see usa_suburbanization_size_vs_growth"
+      - name: year
+        description: "The start year of the decade."
+      - name: log_population
+        description: "see usa_suburbanization_size_vs_growth"
+      - name: log_growth
+        description: "see usa_suburbanization_size_vs_growth"
+      - name: normalized_log_population
+        description: "The log population translated by the minimum observed log population within the definition-year sample."
+      - name: normalized_log_growth
+        description: "The log growth translated by the average growth of the definition-year sample."
+
+  - name: usa_suburbanization_base_centroids
+    description: "Centroids for USA base clusters in 2010-2020, materialized separately so neighbor search can use a spatial index on the centroid point geometry."
+    columns:
+      - name: cluster_id
+        description: "The base cluster identifier."
+      - name: y1
+        description: "The start year of the decade."
+      - name: y2
+        description: "The end year of the decade."
+      - name: population_y1
+        description: "The population of the cluster at the start of the decade."
+      - name: centroid
+        description: "The centroid of the base cluster geometry in EPSG:54009."
+
+  - name: usa_suburbanization_base_neighbor_flags
+    description: "Neighbor classification for the suburbanization comparison among USA base clusters below one million inhabitants in 2010."
+    columns:
+      - name: cluster_id
+        description: "The base cluster identifier."
+      - name: year
+        description: "The start year of the decade."
+      - name: population_y1
+        description: "The population of the cluster at the start of the decade."
+      - name: has_large_nbr
+        description: "True if the largest non-self neighbor within 100 km has population above one million."
+      - name: neighbor_cluster_id
+        description: "The identifier of the largest non-self neighbor within 100 km."
+      - name: neighbor_population_y1
+        description: "The start-year population of the largest non-self neighbor within 100 km."
+      - name: distance
+        description: "The centroid-to-centroid distance to the largest non-self neighbor within 100 km."

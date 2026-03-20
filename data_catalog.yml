@@ -32,6 +32,30 @@ nhgis_place_geom_1900_2010:
     years: ["1900", "1910", "1920", "1930", "1940", "1950", "1960", "1970", "1980", "1990", "2000", "2010"]
     shapefile_name_template: "us_place_point_{year}_tlgnis"
 
+nhgis_county_population_1990_2020:
+  source: nhgis
+  url: https://www.nhgis.org
+  description: NHGIS County Population 1990-2020 standardized to 2010 geography
+  extract_definitions:
+    table_name: CL8
+    years: ["1990", "2000", "2010", "2020"]
+    geog_level: county
+
+nhgis_county_geom_2010:
+  source: nhgis
+  url: https://www.nhgis.org
+  description: NHGIS County Geometry 2010
+  extract_definitions:
+    years: ["2010"]
+    shapefile_name_template: "us_county_{year}_tl{year}"
+
+nhgis_cbsa_geom_2010_2020:
+  source: nhgis
+  url: https://www.nhgis.org
+  description: NHGIS CBSA Geometry 2010 and 2020
+  extract_definitions:
+    years: ["2010", "2020"]
+    shapefile_name_template: "us_cbsa_{year}_tl{year}"
 
 
 

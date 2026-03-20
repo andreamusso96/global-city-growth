@@ -31,3 +31,37 @@ models:
         description: "The name of the state (e.g. California, New York)"
       - name: geom
         description: "The geometry of the state in EPSG:5070"
+
+  - name: usa_cbsa_geom
+    description: "The geometry of CBSAs in 2010 and 2020, standardized to a common schema."
+    columns:
+      - name: cbsa_id
+        description: "The standardized five-digit CBSA identifier."
+      - name: cbsa_name
+        description: "The CBSA name from the source boundary files."
+      - name: year
+        description: "The source year of the CBSA geometry."
+      - name: geom
+        description: "The geometry of the CBSA polygon in EPSG:5070."
+
+  - name: usa_county_geom
+    description: "The geometry of 2010 counties standardized to a common schema."
+    columns:
+      - name: county_id
+        description: "The NHGIS county identifier (GISJOIN)."
+      - name: county_geoid
+        description: "The 2010 county GEOID."
+      - name: state_fips
+        description: "The two-digit state FIPS code."
+      - name: geom
+        description: "The geometry of the county polygon in EPSG:5070."
+
+  - name: usa_county_population
+    description: "County population time series standardized to a common schema."
+    columns:
+      - name: county_id
+        description: "The NHGIS county identifier (GISJOIN)."
+      - name: year
+        description: "The year of the county population observation."
+      - name: population
+        description: "The population of the county."
