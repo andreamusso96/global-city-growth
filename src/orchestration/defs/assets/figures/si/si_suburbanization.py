@@ -9,6 +9,7 @@ import seaborn as sns
 from matplotlib import gridspec
 from matplotlib.lines import Line2D
 from matplotlib.ticker import MaxNLocator
+from sklearn.metrics import normalized_mutual_info_score
 
 from ....resources.resources import PostgresResource, TableNamesResource
 from ...constants import constants
@@ -31,6 +32,7 @@ from ..figure_style import (
 MAIN_ANALYSIS_ID = constants["MAIN_ANALYSIS_ID"]
 PENALTY_SIZE_GROWTH_CURVE = constants["PENALTY_SIZE_GROWTH_CURVE"]
 FIGURE_FILE_NAME = "si_figure_suburbanization_usa.png"
+GRAVITY_FIGURE_FILE_NAME = "si_figure_suburbanization_gravity.png"
 N_BOOTS = 1000
 
 DEFINITION_COLORS = {
@@ -43,6 +45,16 @@ DEFINITION_LABELS = {
     "base": "Base clusters",
     "density": "Density-based clusters",
     "cbsa": "CBSAs",
+}
+
+GRAVITY_COLORS = {
+    "cbsa": DEFINITION_COLORS["cbsa"],
+    "augmented": px.colors.qualitative.Plotly[3],
+}
+
+URBANIZATION_COLORS = {
+    "less_urbanized": px.colors.qualitative.Plotly[4],
+    "more_urbanized": px.colors.qualitative.Plotly[6],
 }
 
 
@@ -224,8 +236,9 @@ def _plot_panel_d(
         data=world_slopes_2010,
         x="size_growth_slope",
         ax=ax,
+        color="black",
         fill=True,
-        color="lightgray",
+        alpha=0.2,
         linewidth=1,
     )
     for definition in ["base", "density", "cbsa"]:
@@ -409,3 +422,501 @@ def si_figure_suburbanization_usa(
     )
     save_figure(fig=fig, figure_file_name=FIGURE_FILE_NAME, si=True)
     return materialize_image(figure_file_name=FIGURE_FILE_NAME, si=True)
+
+
+def _normalize_augmented_size_growth_sample(df: pd.DataFrame) -> pd.DataFrame:
+    normalized = df.copy()
+    average_log_growth = np.log10(df["population_y2"].sum() / df["population_y1"].sum())
+    normalized["normalized_log_growth"] = normalized["log_growth"] - average_log_growth
+    normalized["normalized_log_population"] = normalized["log_population"] - normalized["log_population"].min()
+    return normalized
+
+
+def _plot_gravity_size_growth_curves(
+    ax: plt.Axes,
+    curves: Dict[str, pd.DataFrame],
+    xaxis: str,
+    yaxis: str,
+) -> plt.Axes:
+    for definition in ["cbsa", "augmented"]:
+        df_definition = curves[definition].copy()
+        x, y, ci_low, ci_high = fit_penalized_b_spline(
+            df=df_definition,
+            xaxis=xaxis,
+            yaxis=yaxis,
+            lam=PENALTY_SIZE_GROWTH_CURVE,
+        )
+        plot_spline_with_ci(
+            ax=ax,
+            x=x,
+            y=y,
+            ci_low=ci_low,
+            ci_high=ci_high,
+            color=GRAVITY_COLORS[definition],
+            label="CBSAs" if definition == "cbsa" else "Augmented clusters",
+        )
+    return ax
+
+
+def _plot_size_growth_with_average(
+    ax: plt.Axes,
+    size_growth_normalized: pd.DataFrame,
+    average_growth: pd.DataFrame,
+    color: str,
+    linestyle: str = "-",
+    label: str | None = None,
+    alpha: float = 0.15,
+) -> plt.Axes:
+    x, y, ci_low, ci_high = fit_penalized_b_spline(
+        df=size_growth_normalized,
+        xaxis="log_population",
+        yaxis="normalized_log_growth",
+        lam=PENALTY_SIZE_GROWTH_CURVE,
+    )
+    average_log_growth = average_growth["log_average_growth"].mean()
+    ax.plot(x, average_log_growth + y, color=color, linestyle=linestyle, linewidth=2, label=label)
+    ax.fill_between(
+        x,
+        average_log_growth + ci_low,
+        average_log_growth + ci_high,
+        color=color,
+        alpha=alpha,
+    )
+    return ax
+
+
+def _get_gravity_usa_inputs(
+    postgres: PostgresResource,
+    tables: TableNamesResource,
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    engine = postgres.get_engine()
+
+    cbsa_size_growth = _read_table(
+        engine=engine,
+        table=tables.names.usa.figures.usa_suburbanization_size_vs_growth(),
+        where="definition = 'cbsa'",
+    )
+    cbsa_normalized = _read_table(
+        engine=engine,
+        table=tables.names.usa.figures.usa_suburbanization_size_vs_growth_normalized(),
+        where="definition = 'cbsa'",
+    )
+    augmented_size_growth = _read_table(
+        engine=engine,
+        table=tables.names.world.si.world_suburbanization_augmented_population(),
+        where="country = 'USA' AND year = 2010",
+    )
+    augmented_normalized = _normalize_augmented_size_growth_sample(augmented_size_growth)
+    return cbsa_size_growth, cbsa_normalized, augmented_size_growth, augmented_normalized
+
+
+def _get_panel_c_metrics(
+    postgres: PostgresResource,
+    tables: TableNamesResource,
+) -> pd.DataFrame:
+    engine = postgres.get_engine()
+    augmented_labels = _read_table(
+        engine=engine,
+        table=tables.names.world.si.world_suburbanization_augmented_mapping(),
+        cols="cluster_id, augmented_cluster_id",
+        where="country = 'USA' AND y1 = 2010 AND y2 = 2020",
+    )
+    cbsa_labels = _read_table(
+        engine=engine,
+        table=tables.names.usa.figures.usa_suburbanization_cbsa_induced_labels(),
+        cols="cluster_id, cbsa_cluster_id, population_y1",
+        where="y1 = 2010 AND y2 = 2020",
+    )
+
+    matched_labels = cbsa_labels.merge(augmented_labels, on="cluster_id", how="inner")
+    contingency = (
+        matched_labels.groupby(["augmented_cluster_id", "cbsa_cluster_id"], as_index=False)["population_y1"]
+        .sum()
+    )
+    confusion = contingency.pivot(
+        index="augmented_cluster_id",
+        columns="cbsa_cluster_id",
+        values="population_y1",
+    ).fillna(0.0)
+    matrix = confusion.to_numpy()
+
+    augmented_totals = matrix.sum(axis=1)
+    cbsa_totals = matrix.sum(axis=0)
+    backward_concordance = np.average(matrix.max(axis=1) / augmented_totals, weights=augmented_totals)
+    forward_concordance = np.average(matrix.max(axis=0) / cbsa_totals, weights=cbsa_totals)
+    nmi = normalized_mutual_info_score(
+        matched_labels["augmented_cluster_id"].astype(str),
+        matched_labels["cbsa_cluster_id"].astype(str),
+    )
+
+    return pd.DataFrame(
+        {
+            "label": [
+                "Forward concordance\n(CBSA -> Augmented)",
+                "Backward concordance\n(Augmented -> CBSA)",
+                "Normalized Mutual\nInformation (NMI)",
+            ],
+            "score": [forward_concordance, backward_concordance, nmi],
+        }
+    )
+
+
+def _plot_panel_c_concordance(ax: plt.Axes, metrics: pd.DataFrame) -> plt.Axes:
+    y_positions = np.arange(len(metrics))
+    bars = ax.barh(y_positions, metrics["score"], color="lightgray", edgecolor="black")
+    ax.set_xlim(0, 1)
+    ax.set_yticks(y_positions)
+    ax.set_yticklabels([])
+    ax.invert_yaxis()
+    ax.tick_params(axis="y", length=0)
+    for bar, label in zip(bars, metrics["label"]):
+        ax.text(
+            0.02,
+            bar.get_y() + bar.get_height() / 2,
+            label,
+            ha="left",
+            va="center",
+            fontsize=style_config["tick_font_size"] - 2,
+        )
+    style_axes(ax=ax, xlabel=r"$\mathbf{Score}$", ylabel="")
+    return ax
+
+
+def _get_gravity_world_inputs(
+    postgres: PostgresResource,
+    tables: TableNamesResource,
+) -> Dict[str, pd.DataFrame]:
+    engine = postgres.get_engine()
+
+    augmented_population = _read_table(
+        engine=engine,
+        table=tables.names.world.si.world_suburbanization_augmented_population(),
+    )
+    augmented_slopes = _read_table(
+        engine=engine,
+        table=tables.names.world.si.world_suburbanization_augmented_size_growth_slopes(),
+    )
+    urbanization_groups = _read_table(engine=engine, table="world_urbanization_groups")
+
+    average_growth_augmented = (
+        augmented_population.groupby(["country", "year"], as_index=False)[["population_y1", "population_y2"]]
+        .sum()
+    )
+    average_growth_augmented["log_average_growth"] = np.log10(
+        average_growth_augmented["population_y2"] / average_growth_augmented["population_y1"]
+    )
+    average_growth_augmented = average_growth_augmented.merge(
+        urbanization_groups,
+        on="country",
+        how="left",
+    )
+
+    augmented_normalized = augmented_population.merge(
+        average_growth_augmented[
+            ["country", "year", "log_average_growth", "urban_population_share_group"]
+        ],
+        on=["country", "year"],
+        how="inner",
+    )
+    augmented_normalized["normalized_log_growth"] = (
+        augmented_normalized["log_growth"] - augmented_normalized["log_average_growth"]
+    )
+
+    base_normalized = read_pandas(
+        engine=engine,
+        table=tables.names.world.figures.world_size_vs_growth_normalized(),
+        analysis_id=MAIN_ANALYSIS_ID,
+    )
+    base_average_growth = read_pandas(
+        engine=engine,
+        table=tables.names.world.figures.world_average_growth(),
+        analysis_id=MAIN_ANALYSIS_ID,
+    )
+    base_slopes = read_pandas(
+        engine=engine,
+        table=tables.names.world.figures.world_size_growth_slopes_historical(),
+        analysis_id=MAIN_ANALYSIS_ID,
+    )
+
+    country_year_counts = (
+        augmented_population.groupby(["country", "year"], as_index=False)
+        .size()
+        .rename(columns={"size": "n_clusters"})
+    )
+    eligible_countries = (
+        country_year_counts.groupby("country")["n_clusters"].min().loc[lambda s: s > 50].index.tolist()
+    )
+    augmented_slopes_filtered = augmented_slopes[
+        augmented_slopes["country"].isin(eligible_countries)
+    ].copy()
+
+    slope_differences = augmented_slopes_filtered.merge(
+        base_slopes[["country", "year", "size_growth_slope"]],
+        on=["country", "year"],
+        how="inner",
+        suffixes=("_augmented", "_base"),
+    )
+    slope_differences["diff"] = (
+        slope_differences["size_growth_slope_augmented"] - slope_differences["size_growth_slope_base"]
+    )
+    slope_differences = (
+        slope_differences.groupby("country", as_index=False)["diff"].mean()
+        .merge(urbanization_groups, on="country", how="left")
+    )
+
+    base_country_means = (
+        base_slopes.groupby("country", as_index=False)["size_growth_slope"].mean()
+        .merge(urbanization_groups, on="country", how="left")
+    )
+
+    return {
+        "augmented_normalized": augmented_normalized,
+        "augmented_average_growth": average_growth_augmented,
+        "base_normalized": base_normalized,
+        "base_average_growth": base_average_growth,
+        "slope_differences": slope_differences,
+        "base_country_means": base_country_means,
+    }
+
+
+def _plot_panel_f_distribution(ax: plt.Axes, slope_differences: pd.DataFrame) -> plt.Axes:
+    more_urbanized = slope_differences[
+        slope_differences["urban_population_share_group"] == "60-100"
+    ].copy()
+    sns.kdeplot(
+        more_urbanized,
+        x="diff",
+        color="black",
+        fill=True,
+        alpha=0.2,
+        linewidth=1.0,
+        ax=ax,
+    )
+    median = more_urbanized["diff"].median()
+    std = more_urbanized["diff"].std()
+    ax.axvline(median, color="black", linestyle="--", linewidth=0.8)
+    ax.text(
+        median + 0.01,
+        ax.get_ylim()[1] * 0.82,
+        f"Median: {median:.4f}\nStd: {std:.4f}",
+        fontsize=9,
+    )
+    style_axes(
+        ax=ax,
+        xlabel=r"$\mathbf{Difference \ in \ size\!-\!growth \ slope}$"
+        + "\n"
+        + r"$(\beta_{augmented} - \beta_{base})$",
+        ylabel=r"$\mathbf{Density}$",
+    )
+    ax.set_xlim(-0.05, 0.11)
+    ax.set_xticks([-0.05, -0.01, 0.03, 0.07, 0.11])
+    return ax
+
+
+def _plot_panel_g_distribution(ax: plt.Axes, base_country_means: pd.DataFrame) -> plt.Axes:
+    sns.kdeplot(
+        base_country_means,
+        x="size_growth_slope",
+        color="black",
+        fill=True,
+        alpha=0.2,
+        linewidth=1.0,
+        ax=ax,
+    )
+    median = base_country_means["size_growth_slope"].median()
+    std = base_country_means["size_growth_slope"].std()
+    ax.axvline(median, color="black", linestyle="--", linewidth=0.8)
+    ax.text(
+        median + 0.01,
+        ax.get_ylim()[1] * 0.82,
+        f"Median: {median:.4f}\nStd: {std:.4f}",
+        fontsize=9,
+    )
+    style_axes(
+        ax=ax,
+        xlabel=r"$\mathbf{Size\!-\!growth \ slope} (\beta_{base})$",
+        ylabel=r"$\mathbf{Density}$",
+    )
+    ax.set_xlim(-0.05, 0.11)
+    ax.set_xticks([-0.05, -0.01, 0.03, 0.07, 0.11])
+    return ax
+
+
+@dg.asset(
+    deps=[
+        TableNamesResource().names.usa.figures.usa_suburbanization_size_vs_growth(),
+        TableNamesResource().names.usa.figures.usa_suburbanization_size_vs_growth_normalized(),
+        TableNamesResource().names.usa.figures.usa_suburbanization_cbsa_induced_labels(),
+        TableNamesResource().names.world.si.world_suburbanization_augmented_population(),
+        TableNamesResource().names.world.si.world_suburbanization_augmented_mapping(),
+        TableNamesResource().names.world.si.world_suburbanization_augmented_size_growth_slopes(),
+        TableNamesResource().names.world.figures.world_size_vs_growth_normalized(),
+        TableNamesResource().names.world.figures.world_average_growth(),
+        TableNamesResource().names.world.figures.world_size_growth_slopes_historical(),
+    ],
+    group_name="si_figures",
+)
+def si_figure_suburbanization_gravity(
+    context: dg.AssetExecutionContext,
+    postgres: PostgresResource,
+    tables: TableNamesResource,
+) -> dg.MaterializeResult:
+    context.log.info("Creating SI figure: gravity-based suburbanization")
+    apply_figure_theme()
+
+    (
+        cbsa_size_growth,
+        cbsa_normalized,
+        augmented_usa_size_growth,
+        augmented_usa_normalized,
+    ) = _get_gravity_usa_inputs(postgres=postgres, tables=tables)
+    panel_c_metrics = _get_panel_c_metrics(postgres=postgres, tables=tables)
+    world_inputs = _get_gravity_world_inputs(postgres=postgres, tables=tables)
+
+    fig = plt.figure(figsize=(15, 10))
+    outer = gridspec.GridSpec(
+        6,
+        3,
+        figure=fig,
+        width_ratios=[1.0, 1.0, 0.9],
+        height_ratios=[1, 1, 1, 1, 1, 1],
+        wspace=0.3,
+        hspace=1.1,
+    )
+
+    ax_a = plt.subplot(outer[0:3, 0])
+    ax_b = plt.subplot(outer[0:3, 1])
+    ax_c = plt.subplot(outer[0:2, 2])
+    ax_d = plt.subplot(outer[3:6, 0])
+    ax_e = plt.subplot(outer[3:6, 1])
+    ax_f = plt.subplot(outer[2:4, 2])
+    ax_g = plt.subplot(outer[4:6, 2])
+
+    _plot_gravity_size_growth_curves(
+        ax=ax_a,
+        curves={"cbsa": cbsa_size_growth, "augmented": augmented_usa_size_growth},
+        xaxis="log_population",
+        yaxis="log_growth",
+    )
+    style_axes(
+        ax=ax_a,
+        xlabel=r"$\mathbf{Size}$ (log-scale)",
+        ylabel=r"$\mathbf{Growth \ rate}$ " + r"$(\log_{10}S_{t+10} \ / \ S_t)$",
+    )
+    format_population_ticks(ax=ax_a, is_xaxis=True)
+
+    _plot_gravity_size_growth_curves(
+        ax=ax_b,
+        curves={"cbsa": cbsa_normalized, "augmented": augmented_usa_normalized},
+        xaxis="normalized_log_population",
+        yaxis="normalized_log_growth",
+    )
+    style_axes(
+        ax=ax_b,
+        xlabel=r"$\mathbf{Normalized \ size}$ "
+        + r"$(\log_{10}S_t - \min \ \log_{10}S_t)$",
+        ylabel=r"$\mathbf{Normalized \ growth \ rate}$"
+        + "\n"
+        + r"$(\log_{10}S_{t+10} \ / \ S_t - \log_{10}\Sigma S_{t+10} / \Sigma S_t)$",
+    )
+    ax_b.set_xticks([0, 1, 2, 3])
+    ax_b.legend(frameon=False, loc="upper left", fontsize=style_config["tick_font_size"])
+
+    _plot_panel_c_concordance(ax=ax_c, metrics=panel_c_metrics)
+
+    augmented_more = world_inputs["augmented_normalized"][
+        world_inputs["augmented_normalized"]["urban_population_share_group"] == "60-100"
+    ].copy()
+    augmented_growth_more = world_inputs["augmented_average_growth"][
+        world_inputs["augmented_average_growth"]["urban_population_share_group"] == "60-100"
+    ].copy()
+    base_more = world_inputs["base_normalized"][
+        world_inputs["base_normalized"]["urban_population_share_group"] == "60-100"
+    ].copy()
+    base_growth_more = world_inputs["base_average_growth"][
+        world_inputs["base_average_growth"]["urban_population_share_group"] == "60-100"
+    ].copy()
+
+    _plot_size_growth_with_average(
+        ax=ax_d,
+        size_growth_normalized=base_more,
+        average_growth=base_growth_more,
+        color=URBANIZATION_COLORS["more_urbanized"],
+        linestyle="-",
+        alpha=0.15,
+    )
+    _plot_size_growth_with_average(
+        ax=ax_d,
+        size_growth_normalized=augmented_more,
+        average_growth=augmented_growth_more,
+        color=URBANIZATION_COLORS["more_urbanized"],
+        linestyle="--",
+        alpha=0.1,
+    )
+    style_axes(
+        ax=ax_d,
+        xlabel=r"$\mathbf{Size}$ (log-scale)",
+        ylabel=r"$\mathbf{Growth \ rate}$ " + r"$(\log_{10}S_{t+10} \ / \ S_t)$",
+    )
+    format_population_ticks(ax=ax_d, is_xaxis=True)
+
+    base_less = world_inputs["base_normalized"][
+        world_inputs["base_normalized"]["urban_population_share_group"] == "0-60"
+    ].copy()
+    base_growth_less = world_inputs["base_average_growth"][
+        world_inputs["base_average_growth"]["urban_population_share_group"] == "0-60"
+    ].copy()
+
+    _plot_size_growth_with_average(
+        ax=ax_e,
+        size_growth_normalized=base_less,
+        average_growth=base_growth_less,
+        color=URBANIZATION_COLORS["less_urbanized"],
+        linestyle="-",
+        alpha=0.15,
+    )
+    _plot_size_growth_with_average(
+        ax=ax_e,
+        size_growth_normalized=base_more,
+        average_growth=base_growth_more,
+        color=URBANIZATION_COLORS["more_urbanized"],
+        linestyle="-",
+        alpha=0.15,
+    )
+    _plot_size_growth_with_average(
+        ax=ax_e,
+        size_growth_normalized=augmented_more,
+        average_growth=augmented_growth_more,
+        color=URBANIZATION_COLORS["more_urbanized"],
+        linestyle="--",
+        alpha=0.1,
+    )
+    style_axes(
+        ax=ax_e,
+        xlabel=r"$\mathbf{Size}$ (log-scale)",
+        ylabel=r"$\mathbf{Growth \ rate}$ " + r"$(\log_{10}S_{t+10} \ / \ S_t)$",
+    )
+    format_population_ticks(ax=ax_e, is_xaxis=True)
+    ax_e.set_ylim(0.01, 0.17)
+    ax_e.legend(
+        handles=[
+            Line2D([0], [0], color=URBANIZATION_COLORS["less_urbanized"], linewidth=2, linestyle="-", label="Less urbanized (base) (0-60%)"),
+            Line2D([0], [0], color=URBANIZATION_COLORS["more_urbanized"], linewidth=2, linestyle="-", label="More urbanized (base) (60-100%)"),
+            Line2D([0], [0], color=URBANIZATION_COLORS["more_urbanized"], linewidth=2, linestyle="--", label="More urbanized (augmented) (60-100%)"),
+        ],
+        frameon=False,
+        title="Urban population share 1975",
+        fontsize=style_config["tick_font_size"],
+        title_fontsize=style_config["label_font_size"],
+        loc="upper left",
+    )
+
+    _plot_panel_f_distribution(ax=ax_f, slope_differences=world_inputs["slope_differences"])
+    _plot_panel_g_distribution(ax=ax_g, base_country_means=world_inputs["base_country_means"])
+
+    annotate_letter_label(
+        axes=[ax_a, ax_b, ax_c, ax_d, ax_e, ax_f, ax_g],
+        left_side=[True, False, False, True, True, False, False],
+    )
+    save_figure(fig=fig, figure_file_name=GRAVITY_FIGURE_FILE_NAME, si=True)
+    return materialize_image(figure_file_name=GRAVITY_FIGURE_FILE_NAME, si=True)

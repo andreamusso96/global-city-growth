@@ -144,6 +144,9 @@ class USAFigures:
 
     def usa_suburbanization_base_neighbor_flags(self) -> str:
         return "usa_suburbanization_base_neighbor_flags"
+
+    def usa_suburbanization_cbsa_induced_labels(self) -> str:
+        return "usa_suburbanization_cbsa_induced_labels"
     
 @dataclass(frozen=True)
 class USA:
@@ -314,6 +317,9 @@ class WorldSupplementaryInformation:
 
     def world_suburbanization_augmented_population(self) -> str:
         return "world_suburbanization_augmented_population"
+
+    def world_suburbanization_augmented_size_growth_slopes(self) -> str:
+        return "world_suburbanization_augmented_size_growth_slopes"
 
 @dataclass(frozen=True)
 class World:

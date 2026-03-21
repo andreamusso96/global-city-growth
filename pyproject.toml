@@ -33,6 +33,7 @@ dependencies = [
     "dbt-postgres (>=1.9.1,<2.0.0)",
     "dbt-duckdb (>=1.9.6,<2.0.0)",
     "pooch (>=1.8.2,<2.0.0)",
+    "scikit-learn (>=1.8.0,<2.0.0)",
 ]
 
 

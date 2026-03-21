@@ -166,3 +166,19 @@ models:
         description: "The start-year population of the largest non-self neighbor within 100 km."
       - name: distance
         description: "The centroid-to-centroid distance to the largest non-self neighbor within 100 km."
+
+  - name: usa_suburbanization_cbsa_induced_labels
+    description: "Best-match stable CBSA growth-cluster label induced onto each USA 2010-2020 base cluster by maximum overlap area."
+    columns:
+      - name: cluster_id
+        description: "The USA base-cluster identifier used as the common unit for panel C."
+      - name: cbsa_cluster_id
+        description: "The stable CBSA growth-cluster identifier assigned to the base cluster."
+      - name: y1
+        description: "The start year of the decade."
+      - name: y2
+        description: "The end year of the decade."
+      - name: population_y1
+        description: "The base-cluster population at the start of the decade."
+      - name: intersection_area
+        description: "The overlap area between the transformed base-cluster geometry and the matched stable CBSA growth geometry in EPSG:5070."
