@@ -131,6 +131,20 @@ models:
       - name: log_growth
         description: "The log10 decade growth of the augmented cluster."
 
+  - name: world_size_growth_slopes_historical_hyde_urbanization
+    description: "The canonical historical size-growth slopes joined to HYDE urban population shares."
+    columns:
+      - name: country
+        description: "see world_cluster_growth_geocoding"
+      - name: year
+        description: "see world_size_growth_slopes_historical"
+      - name: analysis_id
+        description: "see world_cluster_growth_population_country_analysis"
+      - name: size_growth_slope
+        description: "see world_size_growth_slopes_historical"
+      - name: urban_population_share
+        description: "The HYDE urban population share for the matched country-year."
+
   - name: world_m49_urbanization
     description: "Population-weighted urban population share aggregated to UN M49 sub-regions for the main analysis."
     columns:

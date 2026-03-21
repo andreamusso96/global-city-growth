@@ -10,13 +10,18 @@ from ..constants import constants
 MAIN_ANALYSIS_ID = constants['MAIN_ANALYSIS_ID']
 
 
-def _make_table_slopes_by_urbanization(df: pd.DataFrame, x_axis: str, y_axis: str) -> pd.DataFrame:
+def _make_table_slopes_by_urbanization(
+    df: pd.DataFrame,
+    x_axis: str,
+    y_axis: str,
+    fixed_effect_col: str,
+) -> pd.DataFrame:
     ols_reg_no_fe = smf.ols(f'{y_axis} ~ {x_axis}', data=df).fit()
-    ols_reg_with_country_fe = smf.ols(f'{y_axis} ~ {x_axis} + C(country)', data=df).fit()
+    ols_reg_with_fe = smf.ols(f'{y_axis} ~ {x_axis} + C({fixed_effect_col})', data=df).fit()
 
     results = []
 
-    for model in [ols_reg_no_fe, ols_reg_with_country_fe]:
+    for model in [ols_reg_no_fe, ols_reg_with_fe]:
         coef = model.params.get(x_axis)
         bse = model.bse.get(x_axis)
         pval = model.pvalues.get(x_axis)
@@ -24,14 +29,17 @@ def _make_table_slopes_by_urbanization(df: pd.DataFrame, x_axis: str, y_axis: st
         nobs = model.nobs
         results.append([coef, bse, pval, r2, nobs])
 
-    # Mapping model types for the final table
     country_fe = ['no', 'yes']
 
     table = pd.DataFrame(results, columns=['coef', 'bse', 'pval', 'r2', 'nobs'])
     table['country_fe'] = country_fe
     return table
 
-def _format_table_slopes_by_urbanization_for_latex(table: pd.DataFrame, x_label: str) -> pd.DataFrame:
+def _format_table_slopes_by_urbanization_for_latex(
+    table: pd.DataFrame,
+    x_label: str,
+    fixed_effect_label: str,
+) -> pd.DataFrame:
     m = len(table)  
 
     def stars(p): return '***' if p<0.01 else '**' if p<0.05 else '*' if p<0.10 else ''
@@ -44,7 +52,7 @@ def _format_table_slopes_by_urbanization_for_latex(table: pd.DataFrame, x_label:
     out = pd.DataFrame([
         [x_label,              *coef_str],
         ["",                   *bse_str],
-        ["Country fixed effect", *cfe_str],
+        [fixed_effect_label,   *cfe_str],
         ["Observations",         *n_str],
         [r"$R^2$",               *r2_str],
     ], columns=[''] + [f"col{i}" for i in range(1, m+1)]) 
@@ -62,7 +70,7 @@ def _get_latex_from_formatted_table_slopes_by_urbanization(table: pd.DataFrame, 
     ).replace("\r\n", "\n").replace("\r", "\n")
 
     # switch tabular -> tabular* without regex (avoids \l issue)
-    latex = latex.replace(r"\begin{tabular}{", f"\\begin{{tabular*}}{{0.8\linewidth}}{{", 1)
+    latex = latex.replace(r"\begin{tabular}{", "\\begin{tabular*}{0.8\\linewidth}{", 1)
     latex = latex.replace(r"\end{tabular}", r"\end{tabular*}", 1)
 
     # header/footer
@@ -84,17 +92,47 @@ def _get_latex_from_formatted_table_slopes_by_urbanization(table: pd.DataFrame, 
 
 
 
+def make_table_slopes_by_urbanization(
+    df_size_growth_slopes: pd.DataFrame,
+    fixed_effect_col: str = 'country',
+    fixed_effect_label: str = 'Country fixed effect',
+    x_axis: str = 'urban_population_share',
+    y_axis: str = 'size_growth_slope',
+    x_label: str = 'Urban population share',
+    y_label: str = 'Size-growth slope',
+) -> str:
+    table = _make_table_slopes_by_urbanization(
+        df=df_size_growth_slopes,
+        x_axis=x_axis,
+        y_axis=y_axis,
+        fixed_effect_col=fixed_effect_col,
+    )
+    table_formatted = _format_table_slopes_by_urbanization_for_latex(
+        table=table,
+        x_label=x_label,
+        fixed_effect_label=fixed_effect_label,
+    )
+    latex = _get_latex_from_formatted_table_slopes_by_urbanization(
+        table=table_formatted,
+        y_label=y_label,
+    )
+    return latex
+
+
 def make_table_2(df_size_growth_slopes: pd.DataFrame) -> str:
     x_axis = 'urban_population_share'
     y_axis = 'size_growth_slope'
     x_label = 'Urban population share'
     y_label = 'Size-growth slope'
-
-
-    table = _make_table_slopes_by_urbanization(df=df_size_growth_slopes, x_axis=x_axis, y_axis=y_axis)
-    table_formatted = _format_table_slopes_by_urbanization_for_latex(table=table, x_label=x_label)
-    latex = _get_latex_from_formatted_table_slopes_by_urbanization(table=table_formatted, y_label=y_label)
-    return latex
+    return make_table_slopes_by_urbanization(
+        df_size_growth_slopes=df_size_growth_slopes,
+        fixed_effect_col='country',
+        fixed_effect_label='Country fixed effect',
+        x_axis=x_axis,
+        y_axis=y_axis,
+        x_label=x_label,
+        y_label=y_label,
+    )
 
 def _get_latex_from_formatted_table_dataset_summary(table: pd.DataFrame) -> str:
     colfmt = '@{\\extracolsep{\\fill}}' + ('l' + 'c' * table.shape[1])
@@ -103,7 +141,7 @@ def _get_latex_from_formatted_table_dataset_summary(table: pd.DataFrame) -> str:
         escape=False,
         column_format=colfmt
     )
-    latex = latex.replace(r"\begin{tabular}{", f"\\begin{{tabular*}}{{0.8\linewidth}}{{", 1)
+    latex = latex.replace(r"\begin{tabular}{", "\\begin{tabular*}{0.8\\linewidth}{", 1)
     latex = latex.replace(r"\end{tabular}", r"\end{tabular*}", 1)
 
     latex = latex.replace("\r\n", "\n").replace("\r", "\n")

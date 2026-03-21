@@ -693,12 +693,11 @@ def _plot_panel_f_distribution(ax: plt.Axes, slope_differences: pd.DataFrame) ->
         ax=ax,
     )
     median = more_urbanized["diff"].median()
-    std = more_urbanized["diff"].std()
     ax.axvline(median, color="black", linestyle="--", linewidth=0.8)
     ax.text(
-        median + 0.01,
+        median + 0.006,
         ax.get_ylim()[1] * 0.82,
-        f"Median: {median:.4f}\nStd: {std:.4f}",
+        f"Median: {median:.4f}",
         fontsize=9,
     )
     style_axes(
@@ -724,12 +723,11 @@ def _plot_panel_g_distribution(ax: plt.Axes, base_country_means: pd.DataFrame) -
         ax=ax,
     )
     median = base_country_means["size_growth_slope"].median()
-    std = base_country_means["size_growth_slope"].std()
     ax.axvline(median, color="black", linestyle="--", linewidth=0.8)
     ax.text(
-        median + 0.01,
+        median + 0.006,
         ax.get_ylim()[1] * 0.82,
-        f"Median: {median:.4f}\nStd: {std:.4f}",
+        f"Median: {median:.4f}",
         fontsize=9,
     )
     style_axes(

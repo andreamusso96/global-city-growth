@@ -18,3 +18,8 @@ sources:
       - name: world_country_region
       - name: world_m49_region_raw
       - name: world_population_raw
+
+  - name: hyde
+    schema: public
+    tables:
+      - name: world_hyde_urbanization_raw

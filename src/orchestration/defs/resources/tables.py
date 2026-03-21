@@ -321,6 +321,9 @@ class WorldSupplementaryInformation:
     def world_suburbanization_augmented_size_growth_slopes(self) -> str:
         return "world_suburbanization_augmented_size_growth_slopes"
 
+    def world_size_growth_slopes_historical_hyde_urbanization(self) -> str:
+        return "world_size_growth_slopes_historical_hyde_urbanization"
+
 @dataclass(frozen=True)
 class World:
     sources: WorldSources = WorldSources()

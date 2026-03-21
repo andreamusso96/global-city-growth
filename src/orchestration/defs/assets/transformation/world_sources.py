@@ -192,7 +192,29 @@ def world_urbanization_raw(context: dg.AssetExecutionContext, storage: StorageRe
     context.log.info(f"Copying urbanization from {urbanization_path}")
     urbanization_df = pd.read_csv(urbanization_path)
     return urbanization_df
-    
+
+
+@dg.asset(
+    deps=[raw_data_zenodo],
+    kinds={'postgres'},
+    group_name="world_raw",
+    io_manager_key="postgres_io_manager",
+    metadata={
+        "dagster/column_schema": dg.TableSchema([
+            dg.TableColumn(name="Entity", type="string", description="The entity name from the HYDE dataset"),
+            dg.TableColumn(name="Code", type="string", description="The ISO-style country code from the HYDE dataset"),
+            dg.TableColumn(name="Year", type="int", description="The observation year"),
+            dg.TableColumn(name="Population share in urban areas", type="float", description="The urban population share reported as a percentage in HYDE"),
+        ])
+    }
+)
+def world_hyde_urbanization_raw(context: dg.AssetExecutionContext, storage: StorageResource):
+    """Urbanization data from HYDE."""
+    hyde_urbanization_path = storage.paths.world.misc.hyde_urbanization()
+    context.log.info(f"Copying HYDE urbanization from {hyde_urbanization_path}")
+    hyde_urbanization_df = pd.read_csv(hyde_urbanization_path)
+    return hyde_urbanization_df
+
 
 
 @dg.asset(

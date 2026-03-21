@@ -105,6 +105,9 @@ class MiscPaths:
     def urbanization(self) -> Path:
         return self.root / "urban-population-share-with-projections.csv"
 
+    def hyde_urbanization(self) -> Path:
+        return self.root / "long-term-urban-population-region.csv"
+
     def population(self) -> Path:
         return self.root / "population-long-run-with-projections.csv"
     

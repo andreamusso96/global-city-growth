@@ -31,6 +31,16 @@ models:
       - name: year
       - name: urban_population_share
 
+  - name: world_hyde_urbanization
+    description: "Cleaned HYDE urban population shares by country-year."
+    columns:
+      - name: country
+        description: "The cleaned ISO-3 country code used by the warehouse"
+      - name: year
+        description: "The observation year"
+      - name: urban_population_share
+        description: "The HYDE urban population share expressed as a fraction between 0 and 1"
+
   - name: world_m49_region
     description: "Cleaned UN M49 sub-region mapping by country"
     columns:
