@@ -10,3 +10,6 @@ tmp/
 data*/
 /figures*/
 .dagster_instance/
+output/
+revisions/
+revisions2/
