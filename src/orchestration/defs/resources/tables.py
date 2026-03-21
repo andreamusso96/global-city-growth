@@ -300,6 +300,21 @@ class WorldSupplementaryInformation:
     def world_avg_size_growth_slope_m49_borders(self) -> str:
         return "world_avg_size_growth_slope_m49_borders"
 
+    def world_suburbanization_augmented_cluster_metrics(self) -> str:
+        return "world_suburbanization_augmented_cluster_metrics"
+
+    def world_suburbanization_augmented_neighbors(self) -> str:
+        return "world_suburbanization_augmented_neighbors"
+
+    def world_suburbanization_augmented_pull(self) -> str:
+        return "world_suburbanization_augmented_pull"
+
+    def world_suburbanization_augmented_mapping(self) -> str:
+        return "world_suburbanization_augmented_mapping"
+
+    def world_suburbanization_augmented_population(self) -> str:
+        return "world_suburbanization_augmented_population"
+
 @dataclass(frozen=True)
 class World:
     sources: WorldSources = WorldSources()

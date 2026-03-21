@@ -1,4 +1,136 @@
 models:
+  - name: world_suburbanization_augmented_cluster_metrics
+    description: "Restricted base-cluster sample for the gravity-based suburbanization analysis, limited to analysis_id 1 and countries in the 60-100 urbanization group."
+    columns:
+      - name: cluster_id
+        description: "The base morphological cluster identifier."
+      - name: country
+        description: "The World Bank country code."
+      - name: y1
+        description: "The start year of the decade."
+      - name: y2
+        description: "The end year of the decade."
+      - name: population_y1
+        description: "The cluster population at the start of the decade."
+      - name: population_y2
+        description: "The cluster population at the end of the decade."
+      - name: geom
+        description: "The base-cluster growth geometry in the pipeline projection."
+      - name: centroid
+        description: "The centroid of the base-cluster geometry."
+      - name: area
+        description: "The area of the base-cluster geometry."
+
+  - name: world_suburbanization_augmented_neighbors
+    description: "Candidate neighbor graph for the gravity-based suburbanization analysis, using a 100 km centroid search radius within each decade."
+    columns:
+      - name: cluster_id
+        description: "The source base cluster identifier."
+      - name: neighbor_id
+        description: "The candidate neighbor cluster identifier, including self-neighbors."
+      - name: country
+        description: "The country code of the source cluster."
+      - name: y1
+        description: "The start year of the decade."
+      - name: y2
+        description: "The end year of the decade."
+      - name: distance
+        description: "The edge-to-edge distance between source and neighbor geometries."
+      - name: area
+        description: "The area of the source cluster geometry."
+      - name: population_y1
+        description: "The start-year population of the source cluster."
+      - name: population_y2
+        description: "The end-year population of the source cluster."
+      - name: neighbor_population_y1
+        description: "The start-year population of the neighbor cluster."
+      - name: neighbor_population_y2
+        description: "The end-year population of the neighbor cluster."
+
+  - name: world_suburbanization_augmented_pull
+    description: "Gravity-style pull calculations for each source-neighbor pair in the augmented suburbanization analysis."
+    columns:
+      - name: cluster_id
+        description: "The source base cluster identifier."
+      - name: neighbor_id
+        description: "The candidate neighbor cluster identifier."
+      - name: country
+        description: "The country code of the source cluster."
+      - name: y1
+        description: "The start year of the decade."
+      - name: y2
+        description: "The end year of the decade."
+      - name: distance
+        description: "The edge-to-edge distance between source and neighbor geometries."
+      - name: area
+        description: "The area of the source cluster geometry."
+      - name: population_y1
+        description: "The start-year population of the source cluster."
+      - name: population_y2
+        description: "The end-year population of the source cluster."
+      - name: neighbor_population_y1
+        description: "The start-year population of the neighbor cluster."
+      - name: neighbor_population_y2
+        description: "The end-year population of the neighbor cluster."
+      - name: pull
+        description: "The gravity-style pull exerted by the neighbor on the source cluster."
+      - name: self_pull
+        description: "The internal pull of the source cluster."
+      - name: should_merge
+        description: "Whether the neighbor pull exceeds the source self-pull."
+
+  - name: world_suburbanization_augmented_mapping
+    description: "One-step mapping from base clusters to augmented clusters using the top-ranked gravity pull."
+    columns:
+      - name: cluster_id
+        description: "The source base cluster identifier."
+      - name: country
+        description: "The country code of the source cluster."
+      - name: y1
+        description: "The start year of the decade."
+      - name: y2
+        description: "The end year of the decade."
+      - name: neighbor_id
+        description: "The highest-pull neighbor for the source cluster."
+      - name: distance
+        description: "The edge-to-edge distance between source and selected neighbor geometries."
+      - name: area
+        description: "The area of the source cluster geometry."
+      - name: population_y1
+        description: "The start-year population of the source cluster."
+      - name: population_y2
+        description: "The end-year population of the source cluster."
+      - name: neighbor_population_y1
+        description: "The start-year population of the selected neighbor cluster."
+      - name: neighbor_population_y2
+        description: "The end-year population of the selected neighbor cluster."
+      - name: pull
+        description: "The gravity-style pull of the selected neighbor."
+      - name: self_pull
+        description: "The internal pull of the source cluster."
+      - name: should_merge
+        description: "Whether the source cluster is assigned to the selected neighbor."
+      - name: augmented_cluster_id
+        description: "The resulting augmented-cluster identifier."
+
+  - name: world_suburbanization_augmented_population
+    description: "Population and size-growth inputs aggregated under the augmented-cluster mapping for countries in the 60-100 urbanization group."
+    columns:
+      - name: cluster_id
+        description: "The augmented-cluster identifier."
+      - name: country
+        description: "The country code carried from the source base clusters."
+      - name: year
+        description: "The start year of the decade."
+      - name: population_y1
+        description: "The aggregated population at the start of the decade."
+      - name: population_y2
+        description: "The aggregated population at the end of the decade."
+      - name: log_population
+        description: "The log10 start-year population of the augmented cluster."
+      - name: log_growth
+        description: "The log10 decade growth of the augmented cluster."
+
   - name: world_m49_urbanization
     description: "Population-weighted urban population share aggregated to UN M49 sub-regions for the main analysis."
     columns:
