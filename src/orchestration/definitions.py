@@ -11,7 +11,7 @@ from .defs.assets.transformation.world_sources import world_raster_ghsl_pop, wor
 from .defs.assets.transformation.world import world_crosswalk_component_id_to_cluster_id
 from .defs.assets.analysis.world_analysis import world_size_growth_slopes_historical, world_rank_size_slopes_historical, world_region_regression_with_urbanization_controls, world_size_growth_slopes_projections
 from .defs.assets.analysis.usa_analysis import usa_rank_size_slopes
-from .defs.assets.analysis.si.si_analysis import world_size_growth_slopes_historical_ols, world_rank_size_slopes_historical_ols, world_linearity_test_rank_vs_size, world_linearity_test_size_vs_growth, world_m49_size_growth_slopes
+from .defs.assets.analysis.si.si_analysis import world_size_growth_slopes_historical_ols, world_rank_size_slopes_historical_ols, world_linearity_test_rank_vs_size, world_linearity_test_size_vs_growth, world_m49_size_growth_slopes, world_suburbanization_augmented_size_growth_slopes
 from .defs.assets.figures.figure_1 import figure_1_map, figure_1_plots
 from .defs.assets.figures.figure_2 import figure_2
 from .defs.assets.figures.figure_3 import figure_3
@@ -132,6 +132,7 @@ defs = Definitions(
         world_linearity_test_rank_vs_size,
         world_linearity_test_size_vs_growth,
         world_m49_size_growth_slopes,
+        world_suburbanization_augmented_size_growth_slopes,
 
         ## Supplementary Information
         si_figure_linear_vs_spline,

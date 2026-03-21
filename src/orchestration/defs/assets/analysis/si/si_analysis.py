@@ -239,3 +239,54 @@ def world_m49_size_growth_slopes(
     )
     slopes['analysis_id'] = MAIN_ANALYSIS_ID
     return slopes[['analysis_id', 'micro_region', 'year', 'size_growth_slope', 'n_cities']]
+
+
+@dg.asset(
+    deps=[TableNamesResource().names.world.si.world_suburbanization_augmented_population()],
+    kinds={'postgres'},
+    group_name="si_analysis",
+    io_manager_key="postgres_io_manager",
+    metadata={
+        "dagster/column_schema": dg.TableSchema([
+            dg.TableColumn(name="analysis_id", type="int", description="The analysis id, fixed to the main analysis"),
+            dg.TableColumn(name="country", type="string", description="see world_cluster_growth_geocoding"),
+            dg.TableColumn(name="year", type="int", description="The start year of the decade"),
+            dg.TableColumn(name="size_growth_slope", type="float", description="The average spline derivative of the augmented-cluster size-growth curve"),
+        ])
+    }
+)
+def world_suburbanization_augmented_size_growth_slopes(
+    context: dg.AssetExecutionContext,
+    postgres: PostgresResource,
+    tables: TableNamesResource,
+) -> pd.DataFrame:
+    """Size-growth slopes computed from gravity-augmented clusters for the main analysis."""
+
+    context.log.info("Calculating world suburbanization augmented size-growth slopes")
+    xaxis = 'log_population'
+    yaxis = 'log_growth'
+    lam = constants['PENALTY_SIZE_GROWTH_CURVE']
+
+    q = f"""
+    SELECT  country,
+            year,
+            log_population,
+            log_growth
+    FROM {tables.names.world.si.world_suburbanization_augmented_population()}
+    """
+    augmented_size_vs_growth = pd.read_sql(q, con=postgres.get_engine())
+    slopes = (
+        augmented_size_vs_growth.groupby(['country', 'year'], sort=True)[[xaxis, yaxis]]
+        .apply(
+            lambda x: get_mean_derivative_penalized_b_spline(
+                df=x,
+                xaxis=xaxis,
+                yaxis=yaxis,
+                lam=lam,
+            )
+        )
+        .reset_index()
+        .rename(columns={0: 'size_growth_slope'})
+    )
+    slopes['analysis_id'] = MAIN_ANALYSIS_ID
+    return slopes[['analysis_id', 'country', 'year', 'size_growth_slope']]
