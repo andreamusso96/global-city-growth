@@ -1,4 +1,4 @@
-# Large cities lose their growth advantage as urban systems mature
+# Large cities lose their growth advantage as countries urbanize
 
 _A harmonized view of how cities grew in the United States (1850–2020) and worldwide (1975–2025), with reproducible code and shareable data._
 
@@ -6,7 +6,7 @@ _A harmonized view of how cities grew in the United States (1850–2020) and wor
 
 ## Paper abstract
 
-The share of the world population living in cities with more than one million people rose from 11\% in 1975 to 24\% in 2025 (our estimates). Will this trend towards greater concentration in large cities continue or level off? We introduce two new city population datasets that use consistent city definitions across countries and over time. The first covers the world between 1975 and 2025, using satellite imagery. The second covers the U.S. between 1850 and 2020, using census microdata. We find that urban growth follows a characteristic life cycle. Early in urbanization, large cities grow faster than smaller ones. As urban systems mature, growth rates equalize across sizes. We use this life cycle to project future population concentration in large cities. Our projections suggest that 38\% of the world population will be living in cities with more than one million people by 2100. This estimate is higher than the 33\% implied by the well-known theory of proportional growth but lower than the 42\% obtained by extrapolating current trends.
+The share of the world population living in cities with more than one million people rose from 11% in 1975 to 24% in 2025 (our estimates). Will this trend towards greater concentration in large cities continue or level off? We introduce two new city population datasets that use consistent city definitions across countries and over time. The first covers the world between 1975 and 2025, using satellite imagery. The second covers the U.S. between 1850 and 2020, using census microdata. We find that urban growth follows a characteristic life cycle. In the early stages of a country's urbanization process, large cities grow faster than smaller ones. At later stages, growth rates equalize across sizes. We use this life cycle to project future population concentration in large cities. Our projections suggest that 38% of the world population will be living in cities with more than one million people by 2100. This estimate is higher than the 33% implied by the well-known theory of proportional growth, but lower than the 42% obtained by extrapolating current trends.
 
 Read the paper here: https://arxiv.org/abs/2510.12417
 
