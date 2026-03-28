@@ -28,11 +28,11 @@ You can find the data [here](https://doi.org/10.5281/zenodo.17315338)
 
 - Paper (arXiv): https://arxiv.org/abs/2510.12417
 
-- Raw data (Zenodo): https://doi.org/10.5281/zenodo.17343655
+- Raw data (Zenodo): https://doi.org/10.5281/zenodo.17240843
 
-- Database dump (Zenodo): https://doi.org/10.5281/zenodo.17338968
+- Database dump (Zenodo): https://doi.org/10.5281/zenodo.17338967
 
-- Output data (Zenodo): https://doi.org/10.5281/zenodo.17315338
+- Output data (Zenodo): https://doi.org/10.5281/zenodo.17315337
 
 ## Quick start (replication)
 
