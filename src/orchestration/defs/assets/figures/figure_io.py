@@ -27,6 +27,9 @@ def save_figure(fig: plt.Figure, figure_file_name: str, dpi: int = 300, si: bool
     path = os.path.join(figure_dir if not si else figure_si_dir, figure_file_name)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     fig.savefig(path, dpi=dpi, bbox_inches="tight")
+    if not si:
+        eps_path = f"{os.path.splitext(path)[0]}.pdf"
+        fig.savefig(eps_path, bbox_inches="tight", format="pdf")
     plt.close(fig)
 
 

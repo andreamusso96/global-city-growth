@@ -130,7 +130,7 @@ def _plot_growth_rates_group_barchart_by_region(fig: plt.Figure, ax: plt.Axes, d
     y_axis = 'normalized_growth'
     weights = 'population'
 
-    y_axis_label = r'$\mathbf{Growth \ advantage \ over \ national \ average}$' + '\n' + r'($g_{\text{group}} \ / \ g_{\text{national}} - 1$)'
+    y_axis_label = r'$\mathbf{Growth \ advantage \ over \ national}$' + '\n' + r'$\mathbf{average} \ (g_{\text{group}} \ / \ g_{\text{national}} - 1$)'
 
     group_to_order = {
         'above_1m': 1,
@@ -170,12 +170,17 @@ def _plot_growth_size_curve_by_region(fig: plt.Figure, ax: plt.Axes, df_size_vs_
         average_log_growth_r = df_average_growth_r['log_average_growth'].mean()
 
         color = region_colors[r]
-        plot_spline_with_ci(ax=ax, x=x, y=average_log_growth_r + y, ci_low=average_log_growth_r + ci_low, ci_high=average_log_growth_r + ci_high, color=color, label=r)
+        plot_spline_with_ci(ax=ax, x=x, y=average_log_growth_r + y, ci_low=average_log_growth_r + ci_low, ci_high=average_log_growth_r + ci_high, color=color)
 
     format_population_ticks(ax=ax, is_xaxis=True)
     style_axes(ax=ax, xlabel=x_axis_label, ylabel=y_axis_label)
     return fig, ax
 
+def _add_legend(ax: plt.Axes) -> None:
+    regions = ['Africa', 'Americas', 'Europe', 'Asia']
+    for r in regions:
+        ax.plot([None], [None], color=region_colors[r], label=r, linewidth=3)
+    ax.legend(frameon=False, ncol=4, bbox_to_anchor=(0.5, -0.15), fontsize=12)
 
 @dg.asset(
     deps=[TableNamesResource().names.world.figures.world_average_size_growth_slope_with_borders()],
@@ -207,7 +212,7 @@ def figure_1_plots(context: dg.AssetExecutionContext, postgres: PostgresResource
     context.log.info(f"Creating figure 1: plots")
     figure_file_name = 'figure_1_plots.png'
 
-    fig = plt.figure(figsize=(10, 5))
+    fig = plt.figure(figsize=(10, 4))
     gs = gridspec.GridSpec(1, 2, wspace=0.25)
     ax1 = fig.add_subplot(gs[0, 0])
     ax2 = fig.add_subplot(gs[0, 1])  
@@ -219,6 +224,8 @@ def figure_1_plots(context: dg.AssetExecutionContext, postgres: PostgresResource
     world_size_vs_growth_normalized = read_pandas(engine=engine, table=tables.names.world.figures.world_size_vs_growth_normalized(), analysis_id=MAIN_ANALYSIS_ID)
     world_average_growth = read_pandas(engine=engine, table=tables.names.world.figures.world_average_growth(), analysis_id=MAIN_ANALYSIS_ID)
     _plot_growth_size_curve_by_region(fig=fig, ax=ax2, df_size_vs_growth_normalized=world_size_vs_growth_normalized, df_average_growth=world_average_growth)
+
+    _add_legend(ax=ax2)
     
     annotate_letter_label(axes=[ax1, ax2], left_side=[True, True, True])
     save_figure(fig=fig, figure_file_name=figure_file_name)
